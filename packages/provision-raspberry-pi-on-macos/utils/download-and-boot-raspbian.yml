@@ -1,0 +1,11 @@
+---
+- hosts: all
+    connection: local
+
+    vars_files:
+        - default.config.yml
+
+    tasks:
+        - name: Make sure there is enough space to download Raspberry Pi OS (32-bit) Lite.
+        - name: Download the raspbian image.
+        - name: Boot the rasbpian image with QEMU.
