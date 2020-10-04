@@ -1,11 +1,28 @@
 ---
-- hosts: all
-    connection: local
+    - hosts: localhost
+      connection: local
+    
+      tasks:
+        - name: Check if there is enough space to download the Raspberry Pi OS (32-bit) Lite image.
+          block:
+            - name: Get the amount of free space in current working directory.
+              shell: df ./ | awk '{print $4}' | tail -1
+              register: freespace
 
-    vars_files:
-        - default.config.yml
+            - name: Get the size of the Rasbperry Pi OS (32-bit) Lite image.
+              uri:
+                url: http://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2020-08-24/2020-08-20-raspios-buster-armhf-lite.zip
+                method: HEAD
+              register: header
 
-    tasks:
-        - name: Make sure there is enough space to download Raspberry Pi OS (32-bit) Lite.
-        - name: Download the raspbian image.
-        - name: Boot the rasbpian image with QEMU.
+            - name: Calculate the space remaining in {{playbook_dir}} after downloading.
+              debug:
+                msg: there will be {{( ( freespace.stdout|int * 512 ) - header.content_length|int )|human_readable}} of space left over in {{playbook_dir}} after downloading the {{header.content_length|int|human_readable}} Raspberry Pi OS (32-bit) Lite image
+              failed_when: ((header.content_length|int) > (freespace.stdout|int * 512))
+          rescue:
+            - name: Not Enough Space in {{playbook_dir}}
+              debug:
+                msg: You need at least {{(header.content_length|int - (freespace.stdout|int * 512))|human_readable}} more space to download the Raspberry Pi OS (32-bit) Lite image. Please clear that space and try again.
+        
+        # - name: Download the raspbian image.
+        # - name: Boot the rasbpian image with QEMU.
