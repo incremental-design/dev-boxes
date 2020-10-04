@@ -20,9 +20,10 @@
                 msg: there will be {{( ( freespace.stdout|int * 512 ) - header.content_length|int )|human_readable}} of space left over in {{playbook_dir}} after downloading the {{header.content_length|int|human_readable}} Raspberry Pi OS (32-bit) Lite image
               failed_when: ((header.content_length|int) > (freespace.stdout|int * 512))
           rescue:
-            - name: Not Enough Space in {{playbook_dir}}
+            - name: Exit because there is not enough Space in {{playbook_dir}}.
               debug:
                 msg: You need at least {{(header.content_length|int - (freespace.stdout|int * 512))|human_readable}} more space to download the Raspberry Pi OS (32-bit) Lite image. Please clear that space and try again.
+            - meta: end_play
         
         # - name: Download the raspbian image.
         # - name: Boot the rasbpian image with QEMU.
