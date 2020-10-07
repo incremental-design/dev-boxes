@@ -1,29 +1,111 @@
 ---
     - hosts: localhost
       connection: local
+
+      vars:
+        image_to_download: "Raspberry Pi OS (32-bit) Lite"
+        image_url: "http://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2020-08-24/2020-08-20-raspios-buster-armhf-lite.zip"
+        staging_directory: "{{ playbook_dir }}/.{{ image_to_download | lower | regex_replace('[^a-zA-Z0-9]','_') | regex_replace('__','_') }}"
+        image_dest: "{{ staging_directory }}/{{ image_url | urlsplit('path') | basename }}"
+        image_kernel: "QEMU 5.4.51 Buster"
+        image_dtb: "Versatile-PB Buster 5.4.1"
+        image_kernel_url: "https://raw.githubusercontent.com/dhruvvyas90/qemu-rpi-kernel/master/kernel-qemu-5.4.51-buster"
+        kernel_dest: "{{ staging_directory }}/{{ image_kernel_url | urlsplit('path') | basename }}"
+        image_dtb_url: "https://raw.githubusercontent.com/dhruvvyas90/qemu-rpi-kernel/master/versatile-pb-buster-5.4.51.dtb"
+        dtb_dest: "{{ staging_directory }}/{{ image_dtb_url | urlsplit('path') | basename }}"
     
       tasks:
-        - name: Check if there is enough space to download the Raspberry Pi OS (32-bit) Lite image.
-          block:
-            - name: Get the amount of free space in current working directory.
+        - block:
+            - name: Get the amount of free space in {{ playbook_dir }}.
               shell: df ./ | awk '{print $4}' | tail -1
               register: freespace
 
-            - name: Get the size of the Rasbperry Pi OS (32-bit) Lite image.
+            - name: Get the size of the {{ image_to_download }} image.
               uri:
-                url: http://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2020-08-24/2020-08-20-raspios-buster-armhf-lite.zip
+                url: "{{ image_url }}"
                 method: HEAD
-              register: header
+              register: image_header
 
-            - name: Calculate the space remaining in {{playbook_dir}} after downloading.
+            - name: Get the size of the {{ image_kernel }} kernel.
+              uri:
+                url: "{{ image_kernel_url }}"
+                method: HEAD
+              register: kernel_header
+
+            - name: Get the size of the {{ image_dtb }} device tree blob.
+              uri:
+                url: "{{ image_dtb_url }}"
+                method: HEAD
+              register: dtb_header
+
+            - name: Calculate the space remaining in {{ playbook_dir }} after downloading.
               debug:
-                msg: there will be {{( ( freespace.stdout|int * 512 ) - header.content_length|int )|human_readable}} of space left over in {{playbook_dir}} after downloading the {{header.content_length|int|human_readable}} Raspberry Pi OS (32-bit) Lite image
-              failed_when: ((header.content_length|int) > (freespace.stdout|int * 512))
+                msg: There will be {{( ( freespace.stdout|int * 512 ) - image_header.content_length|int - kernel_header.content_length|int - dtb_header.content_length|int)|human_readable}} of space left over in {{playbook_dir}} after downloading the {{image_header.content_length|int|human_readable}} {{ image_to_download }} image, the {{kernel_header.content_length|int|human_readable}} {{ image_kernel }} kernel, and the {{dtb_header.content_length|int|human_readable}} {{ image_dtb }} device tree blob.
+              failed_when: ((image_header.content_length|int + kernel_header.content_length|int + dtb_header.content_length|int) > (freespace.stdout|int * 512))
           rescue:
-            - name: Exit because there is not enough Space in {{playbook_dir}}.
+            - name: Exit because there is not enough space in {{playbook_dir}}.
               debug:
-                msg: You need at least {{(header.content_length|int - (freespace.stdout|int * 512))|human_readable}} more space to download the Raspberry Pi OS (32-bit) Lite image. Please clear that space and try again.
+                msg: You need at least {{(image_header.content_length|int + kernel_header.content_length|int + dtb_header.content_length|int - (freespace.stdout|int * 512))|human_readable}} more space to download the {{ image_to_download }} image. Please clear that space and try again.
             - meta: end_play
-        
-        # - name: Download the raspbian image.
-        # - name: Boot the rasbpian image with QEMU.
+                
+        - name: Make the {{ image_dest | dirname }} directory.
+          file:
+            path: "{{ image_dest | dirname }}"
+            state: directory
+            
+        - name: Download the {{ image_to_download }} image to {{ image_dest }}.  
+          get_url: 
+            url: "{{ image_url }}"
+            dest: "{{ image_dest}}"
+
+        - name: Download the {{ image_kernel }} kernel to {{ kernel_dest }}.
+          get_url:
+            url: "{{ image_kernel_url }}"
+            dest: "{{ kernel_dest }}"
+
+        - name: Download the {{ image_dtb }} device tree blob to {{ dtb_dest }}.
+          get_url:
+            url: "{{ image_dtb_url }}"
+            dest: "{{ dtb_dest }}"
+
+        - block: 
+            - name: Check to see if there is enough space to unzip the {{ image_to_download }} image.
+              shell: unzip -l {{ image_dest | quote }} | tail -1 | awk '{print $1}'
+              # args:
+              #   warn: false
+              register: image_size_unzipped
+            - name: Calculate the space remaining in {{ playbook_dir }} after unzipping the image.
+              debug:
+                msg: There will be {{( ( freespace.stdout|int * 512 ) - image_header.content_length|int - kernel_header.content_length|int - dtb_header.content_length|int - image_size_unzipped|int)|human_readable}} of space left over in {{playbook_dir}} after unzipping the {{image_size_unzipped|int|human_readable}} {{ image_to_download }} image.
+              failed_when: ((image_header.content_length|int + kernel_header.content_length|int + dtb_header.content_length|int + image_size_unzipped|int) > (freespace.stdout|int * 512))
+          rescue:
+            - name: Exit because there is not enough space to unzip the image.
+              debug:
+                msg: You need at least {{(image_header.content_length|int + kernel_header.content_length|int + dtb_header.content_length|int + image_size_unzipped|int - (freespace.stdout|int * 512))|human_readable}} more space to unzip the {{ image_to_download }} image. Please clear that space and try again.
+            - meta: end_play
+
+        - name: Unzip the {{ image_to_download }} image.
+          unarchive:
+            remote_src: yes
+            src: "{{image_dest}}"
+            dest: "{{image_dest | dirname }}"
+            list_files: yes
+          register: unzipped_image
+
+        - name: test
+          debug:
+            msg: "{{ unzipped_image.dest | quote}}/{{ unzipped_image.files[0] | quote}}"
+
+        - name: Boot the rasbpian image with QEMU.
+          shell: >
+            qemu-system-arm
+            -M versatilepb
+            -cpu arm1176
+            -m 256
+            -drive "file={{unzipped_image.dest|quote}}/{{unzipped_image.files[0]|quote}},if=none,index=0,media=disk,format=raw,id=disk0"
+            -device "virtio-blk-pci,drive=disk0,disable-modern=on,disable-legacy=off"
+            -net "user,hostfwd=tcp::5022-:22"
+            -dtb {{ dtb_dest | quote }}
+            -kernel {{ kernel_dest | quote }}
+            -append 'root=/dev/vda2 panic=1'
+            -no-reboot
