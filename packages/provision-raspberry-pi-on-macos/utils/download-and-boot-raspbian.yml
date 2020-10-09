@@ -109,3 +109,4 @@
             -kernel {{ kernel_dest | quote }}
             -append 'root=/dev/vda2 panic=1'
             -no-reboot
+        -nic "user,hostfwd=tcp:127.0.0.1:50022-:22"
