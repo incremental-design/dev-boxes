@@ -92,9 +92,19 @@
         list_files: yes
       register: unzipped_image
 
-    - name: test
-      debug:
-        msg: "{{ unzipped_image.dest | quote}}/{{ unzipped_image.files[0] | quote}}"
+    - name: Mount the {{ image_to_download }} image.
+      shell: >
+        hdiutil attach "{{ unzipped_image.dest | quote}}/{{ unzipped_image.files[0] | quote}}" -mountroot "{{ staging_directory | quote }}"
+
+    - name: Enable SSH access on first boot.
+      file:
+        path: "{{ staging_directory }}/boot/ssh"
+        state: touch
+        mode: "0777"
+
+    - name: Unmount the {{ image_to_download }} image.
+      shell: >
+        hdiutil detach "{{ staging_directory | quote }}/boot"
 
     - name: Boot the rasbpian image with QEMU.
       shell: >
