@@ -106,7 +106,7 @@
       shell: >
         hdiutil detach "{{ staging_directory | quote }}/boot"
 
-    - name: Boot the rasbpian image with QEMU.
+    - name: Boot the {{ image_to_download }} with QEMU.
       shell: >
         qemu-system-arm
         -M versatilepb
@@ -119,3 +119,8 @@
         -kernel {{ kernel_dest | quote }}
         -append 'root=/dev/vda2 panic=1'
         -no-reboot
+      async: 3600
+      
+    - name: wait for 3 minutes before attempting to connect to the image.
+      pause:
+        minutes: 3
