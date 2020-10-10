@@ -1,3 +1,4 @@
 {
-  "editor.default_syntax" : "yaml"
+  "editor.default_syntax" : "yaml",
+  "workspace.color" : 1
 }
