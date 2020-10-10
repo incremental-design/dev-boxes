@@ -1,0 +1,7 @@
+---
+- hosts: raspberrypi
+
+  tasks:
+    - name: Shut down pi.
+      shell: >
+        shutdown now -h

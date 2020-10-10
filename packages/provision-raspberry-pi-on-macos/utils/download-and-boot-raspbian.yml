@@ -1,7 +1,5 @@
 ---
 - hosts: localhost
-  connection: local
-
   vars:
     image_to_download: "Raspberry Pi OS (32-bit) Lite"
     image_url: "http://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2020-08-24/2020-08-20-raspios-buster-armhf-lite.zip"
@@ -102,11 +100,43 @@
         state: touch
         mode: "0777"
 
+    - name: copy SSH config script to image.
+      copy:
+        src: enable-ssh-key-auth-in-raspbian.sh
+        dest: "{{ staging_directory | quote }}/boot/enable-ssh-key-auth-in-raspbian.sh"
+        force: yes
+
+    - name: make authorized key file.
+      file:
+        state: touch
+        path: "{{ staging_directory | quote }}/boot/authorized_keys"
+
+    - name: get current user
+      local_action: command whoami
+      register: current_user
+
+    - block:
+        - name: copy ed25519.pub to image.
+          authorized_key:
+            user: "{{current_user.stdout}}"
+            state: present
+            key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_ed25519.pub')}}"
+            path: "{{ staging_directory | quote }}/boot/authorized_keys"
+      rescue:
+        - name: copy id_rsa.pub to image.
+          authorized_key:
+            user: "{{current_user.stdout}}"
+            state: present
+            key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub')}}"
+            path: "{{ staging_directory | quote }}/boot/authorized_keys"
+
     - name: Unmount the {{ image_to_download }} image.
       shell: >
         hdiutil detach "{{ staging_directory | quote }}/boot"
 
-    - name: Boot the {{ image_to_download }} with QEMU.
+    - name: Boot the rasbpian image with QEMU.
+      async: 3600
+      poll: 0
       shell: >
         qemu-system-arm
         -M versatilepb
@@ -119,8 +149,13 @@
         -kernel {{ kernel_dest | quote }}
         -append 'root=/dev/vda2 panic=1'
         -no-reboot
-      async: 3600
-      
-    - name: wait for 3 minutes before attempting to connect to the image.
+
+    - name: Wait 4 minutes before provisioning the {{ image_to_download }} image.
       pause:
-        minutes: 3
+        minutes: 4
+
+    - name: Turn on SSH key-based authentication
+      shell: >
+        ./turn-on-ssh-key-auth-expects
+
+- import_playbook: provision-raspbian.yml

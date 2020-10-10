@@ -1,0 +1,12 @@
+all:
+  hosts:
+    localhost:
+      ansible_host: 127.0.0.1
+      ansible_connection: local
+    raspberrypi:
+      ansible_host: 127.0.0.1
+      ansible_connnection: ssh
+      ansible_user: pi
+      ansible_port: 50022
+      become: yes
+      ansible_ssh_extra_args: "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"

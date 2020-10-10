@@ -1,2 +1,0 @@
-localhost
-raspberrypi:50022 ansible_user=pi ansible_become=true
