@@ -156,6 +156,6 @@
 
     - name: Turn on SSH key-based authentication
       shell: >
-        ./turn-on-ssh-key-auth-expects
+        ./turn-on-ssh-key-auth-expects.sh
 
 - import_playbook: provision-raspbian.yml
