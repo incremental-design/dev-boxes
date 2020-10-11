@@ -8,5 +8,6 @@ all:
       ansible_connnection: ssh
       ansible_user: pi
       ansible_port: 50022
-      become: yes
+      ansible_become: yes
+      ansible_become_pass: raspberry
       ansible_ssh_extra_args: "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"

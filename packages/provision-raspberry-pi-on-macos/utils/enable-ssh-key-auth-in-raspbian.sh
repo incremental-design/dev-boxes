@@ -3,7 +3,6 @@
 sed -i 's/#PubkeyAuthentication yes/PubkeyAuthenication yes/' /etc/ssh/sshd_config
 sed -i 's/#ListenAddress 0.0.0.0/ListenAddress 0.0.0.0/' /etc/ssh/sshd_config
 sed -i 's/#Port 22/Port 22/' /etc/ssh/sshd_config
-# sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config 
 
 echo 'pubkey auth enabled'
 

@@ -2,6 +2,41 @@
 - hosts: raspberrypi
 
   tasks:
+    
+    # unfortunately package install seems to hang when using the apt module
+    # - name: Install Termshark.
+    #   apt:
+    #     name: tshark
+    #     state: present
+    #     
+    # - name: Install Tmux.
+    #   apt:
+    #     name: tmux
+    #     state: present
+    #     
+    # - name: Install Mosh.
+    #   apt:
+    #     name: mosh
+    #     state: present
+    #     
+    # - name: Install Nmap.
+    #   apt:
+    #     name: nmap
+    #     state: present
+    #     
+    # - name: Install Nginx.
+    #   apt:
+    #     name: nginx
+    #     state: present
+    
+    - name: Install tshark, tmux, mosh, nmap, nginx
+      shell: >
+        apt-get install -y tshark tmux mosh nmap nginx
+      args:
+        executable: /bin/bash
+    
     - name: Shut down pi.
       shell: >
         shutdown now -h
+      args:
+        executable: /bin/bash
