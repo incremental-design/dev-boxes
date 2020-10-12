@@ -2,32 +2,28 @@
 - hosts: raspberrypi
 
   tasks:
-    
     - name: Update DHCP servers.
       shell: >
-        echo "static domain_name_servers=1.1.1.1 1.0.0.1" >> /etc/dhcpcd.conf && service dhcpcd restart
+        echo "static domain_name_servers=1.1.1.1 1.0.0.1" >> /etc/dhcpcd.conf && service dhcpcd restart && sleep 5
       args:
         executable: /bin/bash
-        
-    - name: Add package mirror to repository list.
-      apt_repository:
-        repo: deb http://mirror.glennmcgurrin.com/raspbian/ buster main contrib non-free rpi
-        state: present
-        
-    - name: Remove default raspbian mirror from repository list.
-      apt_repository:
-        repo: deb http://raspbian.raspberrypi.org/raspbian/ buster main contrib non-free rpi
-        state: absent
-        
-    - name: Install tshark, tmux, mosh, nmap, nginx, iperf3 and htop
+
+    - name: Switch APT repository mirrors.
+      shell: >
+        sed -i 's/raspbian.raspberrypi.org/mirror.glennmcgurrin.com/' /etc/apt/sources.list
+
+    - name: Update apt package list.
       apt:
         update_cache: yes
         force_apt_get: yes
         cache_valid_time: 3600
         upgrade: dist
+
+    - name: Install tshark, tmux, mosh, nmap, nginx, iperf3 and htop
+      apt:
         name: tshark tmux mosh nmap nginx iperf3 htop
         state: present
-    
+
     - name: Shut down pi.
       shell: >
         shutdown now -h

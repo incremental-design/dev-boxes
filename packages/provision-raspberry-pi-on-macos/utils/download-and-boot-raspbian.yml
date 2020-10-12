@@ -154,8 +154,18 @@
       pause:
         minutes: 4
 
+    - name: Clear fingerprint for 127.0.0.1:50022
+      lineinfile:
+        path: "{{ lookup('file', lookup('env','HOME') + '/.ssh/known_hosts')}}"
+        regexp: '^127\.0\.0\.1:50022'
+        state: absent
+
     - name: Turn on SSH key-based authentication
       shell: >
         ./turn-on-ssh-key-auth-expects.sh
+      retries: 3
+      delay: 20
+      register: result
+      until: result.rc == 0
 
 - import_playbook: provision-raspbian.yml
