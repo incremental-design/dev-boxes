@@ -3,37 +3,30 @@
 
   tasks:
     
-    # unfortunately package install seems to hang when using the apt module
-    # - name: Install Termshark.
-    #   apt:
-    #     name: tshark
-    #     state: present
-    #     
-    # - name: Install Tmux.
-    #   apt:
-    #     name: tmux
-    #     state: present
-    #     
-    # - name: Install Mosh.
-    #   apt:
-    #     name: mosh
-    #     state: present
-    #     
-    # - name: Install Nmap.
-    #   apt:
-    #     name: nmap
-    #     state: present
-    #     
-    # - name: Install Nginx.
-    #   apt:
-    #     name: nginx
-    #     state: present
-    
-    - name: Install tshark, tmux, mosh, nmap, nginx
+    - name: Update DHCP servers.
       shell: >
-        apt-get install -y tshark tmux mosh nmap nginx
+        echo "static domain_name_servers=1.1.1.1 1.0.0.1" >> /etc/dhcpcd.conf && service dhcpcd restart
       args:
         executable: /bin/bash
+        
+    - name: Add package mirror to repository list.
+      apt_repository:
+        repo: deb http://mirror.glennmcgurrin.com/raspbian/ buster main contrib non-free rpi
+        state: present
+        
+    - name: Remove default raspbian mirror from repository list.
+      apt_repository:
+        repo: deb http://raspbian.raspberrypi.org/raspbian/ buster main contrib non-free rpi
+        state: absent
+        
+    - name: Install tshark, tmux, mosh, nmap, nginx, iperf3 and htop
+      apt:
+        update_cache: yes
+        force_apt_get: yes
+        cache_valid_time: 3600
+        upgrade: dist
+        name: tshark tmux mosh nmap nginx iperf3 htop
+        state: present
     
     - name: Shut down pi.
       shell: >
