@@ -8,20 +8,44 @@
       args:
         executable: /bin/bash
 
-    - name: Switch APT repository mirrors.
+    - name: Switch apt repository mirrors and then update package list.
       shell: >
-        sed -i 's/raspbian.raspberrypi.org/mirror.glennmcgurrin.com/' /etc/apt/sources.list
+        sed -i 's/raspbian.raspberrypi.org/mirror.glennmcgurrin.com/' /etc/apt/sources.list &&
+        apt-get update
 
-    - name: Update apt package list.
+    - name: Install tshark.
       apt:
-        update_cache: yes
-        force_apt_get: yes
-        cache_valid_time: 3600
-        upgrade: dist
+        name: tshark
+        state: present
 
-    - name: Install tshark, tmux, mosh, nmap, nginx, iperf3 and htop
+    - name: Install tmux.
       apt:
-        name: tshark tmux mosh nmap nginx iperf3 htop
+        name: tmux
+        state: present
+
+    - name: Install mosh.
+      apt:
+        name: mosh
+        state: present
+
+    - name: Install nmap.
+      apt:
+        name: nmap
+        state: present
+
+    - name: Install nginx.
+      apt:
+        name: nginx
+        state: present
+
+    - name: Install iPerf3.
+      apt:
+        name: iperf3
+        state: present
+
+    - name: Install htop.
+      apt:
+        name: htop
         state: present
 
     - name: Shut down pi.

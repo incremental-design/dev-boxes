@@ -2,7 +2,7 @@
   "actions" : {
     "run" : {
       "enabled" : true,
-      "script" : "#!\/bin\/sh\nansible-playbook -i utils\/inventory.yml utils\/download-and-boot-raspbian.yml"
+      "script" : "#!\/bin\/sh\nansible-playbook -i utils\/inventory.yml utils\/download-and-boot-raspbian.yml -vvvv"
     }
   },
   "identifier" : "D9DE67AB-BE9D-4FEB-8A7F-E159CA91C420",
