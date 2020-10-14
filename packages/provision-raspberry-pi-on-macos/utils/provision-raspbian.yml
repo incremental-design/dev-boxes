@@ -15,9 +15,9 @@
       args:
         warn: false
         
-    - name: Install tshark, tmux, mosh, nmap, nginx, iperf3, htop
+    - name: Install tshark, tmux, mosh, nmap, iperf3, htop
       shell: >
-        apt-get install tshark tmux mosh nmap nginx iperf3 htop
+        export DEBIAN_FRONTEND=noninteractive && apt-get install -qq -y tshark tmux mosh nmap iperf3 htop
       args:
         warn: false
 
@@ -58,6 +58,6 @@
 
     - name: Shut down pi.
       shell: >
-        shutdown now -h
+        sleep 600 && shutdown now -h
       args:
         executable: /bin/bash
