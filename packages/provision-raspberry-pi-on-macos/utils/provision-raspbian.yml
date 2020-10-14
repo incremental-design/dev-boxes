@@ -12,41 +12,49 @@
       shell: >
         sed -i 's/raspbian.raspberrypi.org/mirror.glennmcgurrin.com/' /etc/apt/sources.list &&
         apt-get update
+      args:
+        warn: false
+        
+    - name: Install tshark, tmux, mosh, nmap, nginx, iperf3, htop
+      shell: >
+        apt-get install tshark tmux mosh nmap nginx iperf3 htop
+      args:
+        warn: false
 
-    - name: Install tshark.
-      apt:
-        name: tshark
-        state: present
-
-    - name: Install tmux.
-      apt:
-        name: tmux
-        state: present
-
-    - name: Install mosh.
-      apt:
-        name: mosh
-        state: present
-
-    - name: Install nmap.
-      apt:
-        name: nmap
-        state: present
-
-    - name: Install nginx.
-      apt:
-        name: nginx
-        state: present
-
-    - name: Install iPerf3.
-      apt:
-        name: iperf3
-        state: present
-
-    - name: Install htop.
-      apt:
-        name: htop
-        state: present
+#     - name: Install tshark.
+#       apt:
+#         name: tshark
+#         state: present
+# 
+#     - name: Install tmux.
+#       apt:
+#         name: tmux
+#         state: present
+# 
+#     - name: Install mosh.
+#       apt:
+#         name: mosh
+#         state: present
+# 
+#     - name: Install nmap.
+#       apt:
+#         name: nmap
+#         state: present
+# 
+#     - name: Install nginx.
+#       apt:
+#         name: nginx
+#         state: present
+# 
+#     - name: Install iPerf3.
+#       apt:
+#         name: iperf3
+#         state: present
+# 
+#     - name: Install htop.
+#       apt:
+#         name: htop
+#         state: present
 
     - name: Shut down pi.
       shell: >
