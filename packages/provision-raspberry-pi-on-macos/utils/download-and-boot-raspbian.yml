@@ -89,10 +89,10 @@
         dest: "{{image_dest | dirname }}"
         list_files: yes
       register: unzipped_image
-      
+
     - debug:
         msg: "{{ (( freespace.stdout|int * 512 ) - image_header.content_length|int - kernel_header.content_length|int - dtb_header.content_length|int - ('4 GB' | human_to_bytes|int)) }}"
-      
+
     - block:
         - name: Calculate the space remaining in {{ playbook_dir }} after resizing the image.
           debug:
@@ -103,11 +103,11 @@
           debug:
             msg: You need at least {{(image_header.content_length|int + kernel_header.content_length|int + dtb_header.content_length|int + ('4 GB' | human_to_bytes | int) - (freespace.stdout|int * 512))|human_readable}} more space to expand the {{ image_to_download }} image. Please clear that space and try again.
         - meta: end_play
-    
+
     - name: Expand the image size to 4GB
       shell: >
         hdiutil resize -size 4G "{{ unzipped_image.dest | quote}}/{{ unzipped_image.files[0] | quote}}"
-                    
+
     - name: Mount the "{{ image_to_download }}" image.
       shell: >
         hdiutil attach "{{ unzipped_image.dest | quote}}/{{ unzipped_image.files[0] | quote}}" -mountroot "{{ staging_directory | quote }}"
@@ -166,7 +166,6 @@
         -dtb {{ dtb_dest | quote }}
         -kernel {{ kernel_dest | quote }}
         -append 'root=/dev/vda2 panic=1'
-        -no-reboot
 
     - name: Wait 4 minutes before provisioning the {{ image_to_download }} image.
       pause:

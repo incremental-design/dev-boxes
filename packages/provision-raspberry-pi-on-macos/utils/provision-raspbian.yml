@@ -2,6 +2,16 @@
 - hosts: raspberrypi
 
   tasks:
+    - name: Expand root filesystem.
+      shell: >
+        raspi-config --expand-rootfs
+      args:
+        executable: /bin/bash
+
+    - name: reboot the pi.
+      reboot:
+        reboot_timeout: 600
+
     - name: Update DHCP servers.
       shell: >
         echo "static domain_name_servers=1.1.1.1 1.0.0.1" >> /etc/dhcpcd.conf && service dhcpcd restart && sleep 5
@@ -14,47 +24,12 @@
         apt-get update
       args:
         warn: false
-        
+
     - name: Install tshark, tmux, mosh, nmap, iperf3, htop
       shell: >
         export DEBIAN_FRONTEND=noninteractive && apt-get install -qq -y tshark tmux mosh nmap iperf3 htop
       args:
         warn: false
-
-#     - name: Install tshark.
-#       apt:
-#         name: tshark
-#         state: present
-# 
-#     - name: Install tmux.
-#       apt:
-#         name: tmux
-#         state: present
-# 
-#     - name: Install mosh.
-#       apt:
-#         name: mosh
-#         state: present
-# 
-#     - name: Install nmap.
-#       apt:
-#         name: nmap
-#         state: present
-# 
-#     - name: Install nginx.
-#       apt:
-#         name: nginx
-#         state: present
-# 
-#     - name: Install iPerf3.
-#       apt:
-#         name: iperf3
-#         state: present
-# 
-#     - name: Install htop.
-#       apt:
-#         name: htop
-#         state: present
 
     - name: Shut down pi.
       shell: >
