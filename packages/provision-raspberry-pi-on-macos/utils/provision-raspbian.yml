@@ -32,7 +32,4 @@
         warn: false
 
     - name: Shut down pi.
-      shell: >
-        shutdown now -h
-      args:
-        executable: /bin/bash
+      community.general.shutdown:

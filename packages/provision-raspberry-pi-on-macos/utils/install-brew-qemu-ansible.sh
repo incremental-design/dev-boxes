@@ -85,9 +85,14 @@ install-ansible () {
 
 }
 
+install-ansible-collections () {
+    ansible-galaxy collection install community.general
+}
+
 #----------- Main Script -----------
 check-os
 install-brew
 install-qemu
 install-ansible
+install-ansible-collections
 SCRIPT_IS_DONE=1 # DO NOT DELETE THIS LINE ... the "clean-up" function ↑ needs it in order to know whether or not it should undo changes made by this script.
