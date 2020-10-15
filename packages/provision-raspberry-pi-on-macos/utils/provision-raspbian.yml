@@ -33,6 +33,6 @@
 
     - name: Shut down pi.
       shell: >
-        sleep 600 && shutdown now -h
+        shutdown now -h
       args:
         executable: /bin/bash

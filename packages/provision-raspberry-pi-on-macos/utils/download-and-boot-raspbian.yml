@@ -184,5 +184,9 @@
       delay: 20
       register: result
       until: result.rc == 0
+      
+    - name: Wait 1 minute before continuing.
+      pause:
+        minutes: 1
 
 - import_playbook: provision-raspbian.yml
