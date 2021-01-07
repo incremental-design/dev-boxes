@@ -1,0 +1,4 @@
+---
+- hosts: localhost
+  vars:
+    some_variable: "some value"
