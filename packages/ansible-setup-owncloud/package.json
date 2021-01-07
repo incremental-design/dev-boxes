@@ -1,0 +1,9 @@
+{
+  "name": "ansible-setup-owncloud",
+  "version": "1.0.0",
+  "description": "Automate the installation of OwnCloud on RancherOS",
+  "main": "index.js",
+  "repository": "https://github.com/incremental-design/ansible-setup-owncloud",
+  "author": "Ajay Ganapathy <lets.talk@designbyajay.com>",
+  "license": "MIT"
+}
