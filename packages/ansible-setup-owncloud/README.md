@@ -13,4 +13,5 @@ And that's it!
 2. Install [homebrew](https://brew.sh).
 3. Install ansible with `brew install ansible`,
 4. `git clone` this repository (TODO: make it so that you can just curl the repo and execute the CLI)
-5. run `install.sh` and answer the prompts.
+5. run `yarn build` to build the project.
+6. run `yarn serve` and answer the prompts.
