@@ -7,6 +7,7 @@
   "author": "Ajay Ganapathy <lets.talk@designbyajay.com>",
   "license": "MIT",
   "dependencies": {
-    "cac": "^6.7.1"
+    "cac": "^6.7.1",
+    "prompts": "^2.4.0"
   }
 }
