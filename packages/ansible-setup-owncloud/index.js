@@ -1,4 +1,3 @@
-"use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -35,29 +34,82 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-// TODO: kick off the CLI that installs the server from here
-var cli = require("cac")();
-var parsed = cli.parse();
-console.log(JSON.stringify(parsed, null, 2));
-var prompts = require("prompts");
-var promptsConfig = {
-    type: "number",
-    name: "value",
-    message: "how old are you",
-    validate: function (value) { return (value < 18 ? "Nightclub is 18+ only" : true); },
-};
-(function () { return __awaiter(void 0, void 0, void 0, function () {
-    var response;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0: return [4 /*yield*/, prompts(promptsConfig)];
-            case 1:
-                response = _a.sent();
-                return [2 /*return*/];
+System.register("index", ["cac", "prompts"], function (exports_1, context_1) {
+    "use strict";
+    var cac_1, prompts_1, cli, parsed, promptsConfig;
+    var __moduleName = context_1 && context_1.id;
+    return {
+        setters: [
+            function (cac_1_1) {
+                cac_1 = cac_1_1;
+            },
+            function (prompts_1_1) {
+                prompts_1 = prompts_1_1;
+            }
+        ],
+        execute: function () {
+            cli = cac_1["default"]();
+            parsed = cli.parse();
+            console.log(JSON.stringify(parsed, null, 2));
+            promptsConfig = {
+                type: "number",
+                name: "value",
+                message: "how old are you",
+                validate: function (value) { return (value < 18 ? "Nightclub is 18+ only" : true); }
+            };
+            (function () { return __awaiter(void 0, void 0, void 0, function () {
+                var response;
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0: return [4 /*yield*/, prompts_1.prompts.number(promptsConfig)];
+                        case 1:
+                            response = _a.sent();
+                            return [2 /*return*/];
+                    }
+                });
+            }); })();
         }
-    });
-}); })();
-require("dotenv").config();
-var DigitalOceanAPIWrapperConstructor = require("do-wrapper").default;
-var DigitalOceanAPIWrapper = new DigitalOceanAPIWrapperConstructor(process.env.DIGITAL_OCEAN_PERSONAL_ACCESS_TOKEN);
-console.log(DigitalOceanAPIWrapper);
+    };
+});
+System.register("provisionRancherOnDigitalOcean", ["dotenv", "do-wrapper"], function (exports_2, context_2) {
+    "use strict";
+    var dotenv_1, do_wrapper_1, digitalOceanAPIWrapper, rancherInstance;
+    var __moduleName = context_2 && context_2.id;
+    function personalAccessTokenIsString(personalAccessToken) {
+        return personalAccessToken.length !== undefined;
+    }
+    return {
+        setters: [
+            function (dotenv_1_1) {
+                dotenv_1 = dotenv_1_1;
+            },
+            function (do_wrapper_1_1) {
+                do_wrapper_1 = do_wrapper_1_1;
+            }
+        ],
+        execute: function () {
+            dotenv_1["default"].config();
+            if (personalAccessTokenIsString(process.env.DIGITAL_OCEAN_PERSONAL_ACCESS_TOKEN)) {
+                digitalOceanAPIWrapper = new do_wrapper_1["default"](process.env.DIGITAL_OCEAN_PERSONAL_ACCESS_TOKEN);
+            }
+            else {
+                throw "Digital Ocean Personal Access Token has not been set in `.env`. Cannot access digital ocean API";
+            }
+            rancherInstance = {
+                name: "test",
+                region: "nyc3",
+                size: "s-1vcpu-1gb",
+                image: "rancheros",
+                ssh_keys: [27608986, 28496457],
+                backups: false,
+                ipv6: true,
+                private_networking: true,
+                monitoring: true,
+                user_data: "",
+                volumes: [""],
+                tags: ""
+            };
+            digitalOceanAPIWrapper.droplets.create(rancherInstance);
+        }
+    };
+});
