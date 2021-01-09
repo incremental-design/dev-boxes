@@ -57,3 +57,7 @@ var promptsConfig = {
         }
     });
 }); })();
+require("dotenv").config();
+var DigitalOceanAPIWrapperConstructor = require("do-wrapper").default;
+var DigitalOceanAPIWrapper = new DigitalOceanAPIWrapperConstructor(process.env.DIGITAL_OCEAN_PERSONAL_ACCESS_TOKEN);
+console.log(DigitalOceanAPIWrapper);
