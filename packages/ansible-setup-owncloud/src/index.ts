@@ -1,13 +1,13 @@
-// TODO: kick off the CLI that installs the server from here
-const cli = require("cac")();
+import CAC from "cac";
+import { prompts, PromptObject } from "prompts";
+
+const cli = CAC();
 
 const parsed = cli.parse();
 
 console.log(JSON.stringify(parsed, null, 2));
 
-const prompts = require("prompts");
-
-const promptsConfig = {
+const promptsConfig: PromptObject = {
   type: "number",
   name: "value",
   message: "how old are you",
@@ -15,5 +15,5 @@ const promptsConfig = {
 };
 
 (async () => {
-  const response = await prompts(promptsConfig);
+  const response = await prompts.number(promptsConfig);
 })();
