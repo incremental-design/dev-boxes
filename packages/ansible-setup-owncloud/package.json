@@ -25,7 +25,8 @@
     "ts-loader": "^8.0.14",
     "typescript": "<=4.1.0",
     "webpack": "^5.12.2",
-    "webpack-cli": "^4.3.1"
+    "webpack-cli": "^4.3.1",
+    "webpack-node-externals": "^2.5.2"
   },
   "scripts": {
     "build": "yarn install && npx webpack --mode=production",
