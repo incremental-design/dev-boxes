@@ -1,0 +1,9 @@
+{
+  "actions" : {
+    "build" : {
+      "enabled" : true,
+      "script" : "yarn generateDigitalOceanAPISpec"
+    }
+  },
+  "identifier" : "7F0D332F-A7EF-454D-8E45-CC94E03F0449"
+}

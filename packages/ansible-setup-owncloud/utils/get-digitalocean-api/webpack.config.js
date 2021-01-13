@@ -19,12 +19,12 @@ module.exports = {
       },
     ],
   },
-  modules: ["../../node_modules"],
   resolve: {
     extensions: [".tsx", ".ts", ".js"],
     alias: {
       util: "util",
     },
+    modules: ["../../node_modules"],
   },
   output: {
     filename: "index.js",

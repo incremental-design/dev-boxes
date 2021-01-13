@@ -29,6 +29,7 @@
     "webpack-node-externals": "^2.5.2"
   },
   "scripts": {
+    "generateDigitalOceanAPISpec": "yarn install && cd utils/get-digitalocean-api/ && npx webpack --mode=production",
     "build": "yarn install && npx webpack --mode=production",
     "serve": "yarn build && node index.js"
   }
