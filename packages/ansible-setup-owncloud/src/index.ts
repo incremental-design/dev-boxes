@@ -1,7 +1,10 @@
 import cac from "cac";
 import prompts from "prompts";
 import dotenv from "dotenv";
-import createRancherInstance from "./provisionRancherOnDigitalOcean/index";
+import {
+  RancherOSConfig,
+  cloudProviders,
+} from "./provisionRancherOnDigitalOcean/RancherOSConfig";
 
 dotenv.config(); // we want to initialize our environment variables at the very beginning of the program. Right now they are needed in provisionRancherOnDigitalOcean/getDigitalOceanPersonalAccessToken.ts
 
@@ -18,14 +21,19 @@ const parsed = cli.parse();
 const questions: Array<prompts.PromptObject> = [
   {
     type: "text",
-    name: "Droplet Name",
+    name: "dropletName",
     message: "What do you want to name your droplet?",
     initial: "rancher",
   },
 ];
 
+const rancherConfig = new RancherOSConfig();
+
 (async () => {
   const response = await prompts(questions);
   console.log(response);
-  // await createRancherInstance();
+  rancherConfig
+    .setName(response.dropletName)
+    .provisionOn(cloudProviders.digitalOcean);
+  // console.log(rancherConfig);
 })();
