@@ -31,9 +31,7 @@ const rancherConfig = new RancherOSConfig();
 
 (async () => {
   const response = await prompts(questions);
-  console.log(response);
   rancherConfig
     .setName(response.dropletName)
     .provisionOn(cloudProviders.digitalOcean);
-  // console.log(rancherConfig);
 })();

@@ -33,6 +33,6 @@
     "getDigitalOceanAPISpec": "stat utils/get-digitalocean-api/index.js && node utils/get-digitalocean-api/index.js || $( yarn generateDigitalOceanAPISpec && yarn getDigitalOceanAPISpec )",
     "generateDigitalOceanAPISpec": "yarn install && cd utils/get-digitalocean-api/ && npx webpack --mode=production",
     "build": "yarn install && npx webpack --mode=production",
-    "serve": "yarn build && node index.js"
+    "serve": "yarn exec './yarnBuildSilent.sh' && node index.js"
   }
 }
