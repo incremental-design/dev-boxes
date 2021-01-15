@@ -22,9 +22,13 @@ export class RancherOSConfig {
       let config = { name: this.name };
       provisionOnDigitalOcean(config);
     } else if (cloud === cloudProviders.aws) {
-      throw "aws isn't supported yet. But feel free to submit a pull request if you want to add support for it!";
+      throw new Error(
+        "aws isn't supported yet. But feel free to submit a pull request if you want to add support for it!"
+      );
     } else {
-      throw '${cloud} isn\'t a supported cloud provider. You must specify either "aws" or "digitalOcean".';
+      throw new Error(
+        '${cloud} isn\'t a supported cloud provider. You must specify either "aws" or "digitalOcean".'
+      );
     }
   }
 }
