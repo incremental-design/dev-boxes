@@ -8,23 +8,38 @@ const apiSource =
 
 const generateAPI = async function () {
   try {
-    const dereferencedAPI = await swaggerParser.dereference(apiSource);
-    const dereferencedAPIJSON = JSON.stringify(dereferencedAPI);
-    const { path, cleanup } = await file();
-    fs.writeFileSync(path, dereferencedAPIJSON); //FIXME: synchronously writing a file slows down the whole program.
     const digitalOceanAPI = {
       from: "openapi_3",
       to: "swagger_2",
-      source: path,
+      source: apiSource,
     };
-    const convertedAPI: object = await converter.convert(digitalOceanAPI);
+
+    const convertedAPI: any = await converter.convert(digitalOceanAPI);
+
+    // console.log(convertedAPI);
+
+    const convertedAPIJSON = convertedAPI.stringify({
+      syntax: "json",
+      order: "openapi",
+    });
+
+    console.log(convertedAPIJSON);
+
+    const { path, cleanup } = await file();
+    fs.writeFileSync(path, convertedAPIJSON); //FIXME: synchronously writing a file slows down the whole program.
+
+    const dereferencedAPI = await swaggerParser.dereference(path);
+
     cleanup();
-    const convertedAPIJSON = JSON.stringify(convertedAPI);
+
+    const dereferencedAPIJSON = JSON.stringify(dereferencedAPI);
+
     const date = new Date();
     const today = date.toISOString().split("T")[0];
+
     fs.writeFile(
       "digitalOceanAPI-" + today + ".json",
-      convertedAPIJSON,
+      dereferencedAPIJSON,
       "utf8",
       (error) => {
         console.log(error);
