@@ -18,17 +18,24 @@ export class RancherOSConfig {
   }
 
   provisionOn(cloud: cloudProviders) {
-    if (cloud === cloudProviders.digitalOcean) {
-      let config = { name: this.name };
-      provisionOnDigitalOcean(config);
-    } else if (cloud === cloudProviders.aws) {
-      throw new Error(
-        "aws isn't supported yet. But feel free to submit a pull request if you want to add support for it!"
-      );
-    } else {
-      throw new Error(
-        '${cloud} isn\'t a supported cloud provider. You must specify either "aws" or "digitalOcean".'
-      );
+    switch (+cloud) {
+      /*
+        argument 'cloud' has to be cast to a number in order to be comparable in a switch statement.
+        This works because enums are actually a type of number ... the name of each enumerable value is just syntactic sugar.
+        for more info see: https://stackoverflow.com/questions/27747437/typescript-enum-switch-not-working
+      */
+      case cloudProviders.digitalOcean:
+        let config = { name: this.name };
+        provisionOnDigitalOcean(config);
+        break;
+      case cloudProviders.aws:
+        throw new Error(
+          "Sorry, I haven't written any code to provision rancher on AWS. If you want to add the code in, check out this project and go to src/provisionRancherOnDigitalOcean/RancherOSConfig.ts and modify the code."
+        );
+      default:
+        throw new Error(
+          '${cloud} isn\'t a supported cloud provider. You must specify either "aws" or "digitalOcean".'
+        );
     }
   }
 }
