@@ -30,8 +30,9 @@ const questions: Array<prompts.PromptObject> = [
 const rancherConfig = new RancherOSConfig();
 
 (async () => {
-  const response = await prompts(questions);
-  rancherConfig
-    .setName(response.dropletName)
+  const answers = await prompts(questions);
+  const droplet = await rancherConfig
+    .setName(answers.dropletName)
     .provisionOn(cloudProviders.digitalOcean);
+  console.log(droplet);
 })();

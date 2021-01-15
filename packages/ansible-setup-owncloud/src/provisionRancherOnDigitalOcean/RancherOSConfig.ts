@@ -1,4 +1,7 @@
-import { provisionOnDigitalOcean } from "./provisionOnDigitalOcean";
+import {
+  provisionOnDigitalOcean,
+  digitalOceanCreateDropletResponse,
+} from "./provisionOnDigitalOcean";
 export class RancherOSConfig {
   private _name: string = "";
 
@@ -17,7 +20,9 @@ export class RancherOSConfig {
     return this;
   }
 
-  provisionOn(cloud: cloudProviders) {
+  provisionOn(
+    cloud: cloudProviders
+  ): Promise<digitalOceanCreateDropletResponse> {
     switch (+cloud) {
       /*
         argument 'cloud' has to be cast to a number in order to be comparable in a switch statement.
@@ -26,8 +31,7 @@ export class RancherOSConfig {
       */
       case cloudProviders.digitalOcean:
         let config = { name: this.name };
-        provisionOnDigitalOcean(config);
-        break;
+        return provisionOnDigitalOcean(config);
       case cloudProviders.aws:
         throw new Error(
           "Sorry, I haven't written any code to provision rancher on AWS. If you want to add the code in, check out this project and go to src/provisionRancherOnDigitalOcean/RancherOSConfig.ts and modify the code."

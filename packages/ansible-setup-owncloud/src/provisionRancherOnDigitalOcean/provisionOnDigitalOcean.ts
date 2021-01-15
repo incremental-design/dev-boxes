@@ -3,7 +3,7 @@ import getAuthToken from "./getDigitalOceanPersonalAccessToken";
 
 export function provisionOnDigitalOcean(
   configObject: object
-): digitalOceanCreateDropletResponse {
+): Promise<digitalOceanCreateDropletResponse> {
   let rancherInstance: object = {
     name: "another",
     region: "nyc3",
@@ -22,15 +22,14 @@ export function provisionOnDigitalOcean(
 
   const authToken = getAuthToken();
   const digitalOceanWrapper = new DigitalOcean(authToken);
-  (async () => {
-    try {
-      await digitalOceanWrapper.droplets
-        // @ts-ignore: types for rancherInstance are not compatible
-        .create(rancherInstance);
-    } catch (error: any) {
-      throw error; //FIXME: either do something with the error or don't bother catching it.
-    }
-  })();
+  return (
+    digitalOceanWrapper.droplets
+      // @ts-ignore: types for rancherInstance are not compatible
+      .create(rancherInstance)
+      .then((response) => {
+        return response;
+      })
+  );
 }
 
 export interface digitalOceanCreateDropletResponse {
