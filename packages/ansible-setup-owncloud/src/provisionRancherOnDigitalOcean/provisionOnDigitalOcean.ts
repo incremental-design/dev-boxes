@@ -1,7 +1,9 @@
 import DigitalOcean from "do-wrapper";
 import getAuthToken from "./getDigitalOceanPersonalAccessToken";
 
-export default function provisionOnDigitalOcean(configObject: object): void {
+export function provisionOnDigitalOcean(
+  configObject: object
+): digitalOceanCreateDropletResponse {
   let rancherInstance: object = {
     name: "another",
     region: "nyc3",
@@ -29,4 +31,28 @@ export default function provisionOnDigitalOcean(configObject: object): void {
       throw error; //FIXME: either do something with the error or don't bother catching it.
     }
   })();
+}
+
+export interface digitalOceanCreateDropletResponse {
+  id: bigint;
+  name: string;
+  memoryInMegabytes: bigint;
+  vcpus: bigint;
+  disk: bigint;
+  locked: boolean;
+  created_at: string;
+  status: string;
+  backup_ids: Array<any>;
+  snapshot_ids: Array<any>;
+  features: Array<any>;
+  region: object;
+  image: object;
+  size: object;
+  size_slug: string;
+  networks: object;
+  kernel: object | null;
+  next_backup_window: object | null;
+  tags: Array<any>;
+  volume_ids: Array<any>;
+  vpc_uuid: String;
 }

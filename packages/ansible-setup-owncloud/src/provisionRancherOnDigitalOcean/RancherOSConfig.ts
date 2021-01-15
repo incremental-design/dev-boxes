@@ -1,4 +1,4 @@
-import provisionOnDigitalOcean from "./provisionOnDigitalOcean";
+import { provisionOnDigitalOcean } from "./provisionOnDigitalOcean";
 export class RancherOSConfig {
   private _name: string = "";
 
