@@ -45,6 +45,13 @@ export class RancherOSConfig {
     return this;
   }
 
+  private parseDigitalOceanDropletResponse(
+    response: digitalOceanCreateDropletResponse
+  ): void {
+    // TODO: grab all relevant values and use them to set rancherOS config
+    return;
+  }
+
   provisionOn(cloud: cloudProviders): this {
     switch (+cloud) {
       /*
@@ -54,7 +61,15 @@ export class RancherOSConfig {
       */
       case cloudProviders.digitalOcean:
         let config = { name: this.name };
-        return provisionOnDigitalOcean(config);
+        // return provisionOnDigitalOcean(config);
+        provisionOnDigitalOcean(config)
+          .then((response) => {
+            this.parseDigitalOceanDropletResponse(response);
+          })
+          .catch((error) => {
+            console.error(error);
+          });
+        return this;
       case cloudProviders.aws:
         throw new Error(
           "Sorry, I haven't written any code to provision rancher on AWS. If you want to add the code in, check out this project and go to src/provisionRancherOnDigitalOcean/RancherOSConfig.ts and modify the code."
