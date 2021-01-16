@@ -48,7 +48,24 @@ export interface digitalOceanCreateDropletResponse {
   image: object;
   size: object;
   size_slug: string;
-  networks: object;
+  networks: {
+    v4: [
+      {
+        ip_address: string;
+        netmask: string;
+        gateway: string | null;
+        type: "private" | "public";
+      }
+    ];
+    v6: [
+      {
+        ip_address: string;
+        netmask: string;
+        gateway: string | null;
+        type: "private" | "public";
+      }
+    ];
+  };
   kernel: object | null;
   next_backup_window: object | null;
   tags: Array<any>;
