@@ -49,6 +49,11 @@ export class RancherOSConfig {
     response: digitalOceanCreateDropletResponse
   ): void {
     // TODO: grab all relevant values and use them to set rancherOS config
+    response.networks.v4.forEach((item) => {
+      if (item.type === "public") {
+        this.addIpv4Address(item.ip_address);
+      }
+    });
     return;
   }
 
