@@ -64,7 +64,7 @@ export class RancherOSConfig {
     return;
   }
 
-  provisionOn(cloud: cloudProviders): this {
+  async provisionOn(cloud: cloudProviders): Promise<this> {
     switch (+cloud) {
       /*
         argument 'cloud' has to be cast to a number in order to be comparable in a switch statement.
@@ -73,19 +73,14 @@ export class RancherOSConfig {
       */
       case cloudProviders.digitalOcean:
         let config = { name: this.name };
-        // return provisionOnDigitalOcean(config);
-        provisionOnDigitalOcean(config)
-          .then((response) => {
-            this.parseDigitalOceanDropletResponse(response);
-          })
-          .catch((error) => {
-            console.error(error);
-          });
+        const response: digitalOceanCreateDropletResponse = await provisionOnDigitalOcean(
+          config
+        );
+        this.parseDigitalOceanDropletResponse(response);
         return this;
       case cloudProviders.aws:
-        throw new Error(
-          "Sorry, I haven't written any code to provision rancher on AWS. If you want to add the code in, check out this project and go to src/provisionRancherOnDigitalOcean/RancherOSConfig.ts and modify the code."
-        );
+        await provisionOnAWS();
+        return this;
       default:
         throw new Error(
           '${cloud} isn\'t a supported cloud provider. You must specify either "aws" or "digitalOcean".'
