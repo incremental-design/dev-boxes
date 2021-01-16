@@ -2,6 +2,7 @@ import {
   provisionOnDigitalOcean,
   digitalOceanCreateDropletResponse,
 } from "./provisionOnDigitalOcean";
+import { provisionOnAWS } from "./provisionOnAWS";
 
 export class RancherOSConfig {
   private _name: string = "";
@@ -52,6 +53,7 @@ export class RancherOSConfig {
     response.networks.v4.forEach((item) => {
       if (item.type === "public") {
         this.addIpv4Address(item.ip_address);
+        console.log(item, "logged");
       }
     });
     return;
