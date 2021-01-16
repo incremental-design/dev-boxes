@@ -5,11 +5,14 @@ import {
 import { provisionOnAWS } from "./provisionOnAWS";
 
 export class RancherOSConfig {
+  // !Private Members
   private _name: string = "";
   private _ipv4Addresses: Set<string> = new Set();
 
+  // !Constructor
   constructor() {} //I'm leaving the constructor blank because we'll initialize all variables with chainable setters
 
+  // !Getters and Setters
   get name(): string {
     return this._name;
   }
@@ -28,6 +31,7 @@ export class RancherOSConfig {
     //TODO: iterate through the set and remove any ip addresses that are not valid.
   }
 
+  // !Accessor Methods
   setName(newName: string): this {
     this.name = newName;
     return this;
@@ -46,6 +50,7 @@ export class RancherOSConfig {
     return this;
   }
 
+  // !Subroutines (these should be private)
   private parseDigitalOceanDropletResponse(
     response: digitalOceanCreateDropletResponse
   ): void {
