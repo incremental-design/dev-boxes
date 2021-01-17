@@ -40,42 +40,44 @@ export function getDropletInformation(dropletID: string): Promise<any> {
 }
 
 export interface digitalOceanCreateDropletResponse {
-  id: string;
-  name: string;
-  memoryInMegabytes: bigint;
-  vcpus: bigint;
-  disk: bigint;
-  locked: boolean;
-  created_at: string;
-  status: string;
-  backup_ids: Array<any>;
-  snapshot_ids: Array<any>;
-  features: Array<any>;
-  region: object;
-  image: object;
-  size: object;
-  size_slug: string;
-  networks: {
-    v4: [
-      {
-        ip_address: string;
-        netmask: string;
-        gateway: string | null;
-        type: "private" | "public";
-      }
-    ];
-    v6: [
-      {
-        ip_address: string;
-        netmask: string;
-        gateway: string | null;
-        type: "private" | "public";
-      }
-    ];
+  droplet: {
+    id: string;
+    name: string;
+    memoryInMegabytes: bigint;
+    vcpus: bigint;
+    disk: bigint;
+    locked: boolean;
+    created_at: string;
+    status: string;
+    backup_ids: Array<any>;
+    snapshot_ids: Array<any>;
+    features: Array<any>;
+    region: object;
+    image: object;
+    size: object;
+    size_slug: string;
+    networks: {
+      v4: [
+        {
+          ip_address: string;
+          netmask: string;
+          gateway: string | null;
+          type: "private" | "public";
+        }
+      ];
+      v6: [
+        {
+          ip_address: string;
+          netmask: string;
+          gateway: string | null;
+          type: "private" | "public";
+        }
+      ];
+    };
+    kernel: object | null;
+    next_backup_window: object | null;
+    tags: Array<any>;
+    volume_ids: Array<any>;
+    vpc_uuid: String;
   };
-  kernel: object | null;
-  next_backup_window: object | null;
-  tags: Array<any>;
-  volume_ids: Array<any>;
-  vpc_uuid: String;
 }
