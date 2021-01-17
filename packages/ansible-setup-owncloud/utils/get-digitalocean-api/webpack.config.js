@@ -30,4 +30,7 @@ module.exports = {
     filename: "index.js",
     path: path.resolve(__dirname),
   },
+  optimization: {
+    minimize: false,
+  },
 };
