@@ -1,6 +1,12 @@
 import DigitalOcean from "do-wrapper";
 import getAuthToken from "./getDigitalOceanPersonalAccessToken";
 
+const authToken = getAuthToken();
+const digitalOceanWrapper = new DigitalOcean(authToken);
+/*
+  authToken and digitalOceanWrapper are singletons that are going to persist for the life of the program.
+*/
+
 export function provisionOnDigitalOcean(
   configObject: object
 ): Promise<digitalOceanCreateDropletResponse> {
@@ -19,9 +25,6 @@ export function provisionOnDigitalOcean(
   };
 
   rancherInstance = Object.assign(rancherInstance, configObject);
-
-  const authToken = getAuthToken();
-  const digitalOceanWrapper = new DigitalOcean(authToken);
   return (
     digitalOceanWrapper.droplets
       // @ts-ignore: types for rancherInstance are not compatible
@@ -32,8 +35,12 @@ export function provisionOnDigitalOcean(
   );
 }
 
+export function getDropletInformation(dropletID: string): Promise<any> {
+  return digitalOceanWrapper.droplets.getById(dropletID);
+}
+
 export interface digitalOceanCreateDropletResponse {
-  id: bigint;
+  id: string;
   name: string;
   memoryInMegabytes: bigint;
   vcpus: bigint;
