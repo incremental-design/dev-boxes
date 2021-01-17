@@ -1,12 +1,9 @@
 import cac from "cac";
 import prompts from "prompts";
-import dotenv from "dotenv";
 import {
   RancherOSConfig,
   cloudProviders,
 } from "./provisionRancherOnDigitalOcean/RancherOSConfig";
-
-dotenv.config(); // we want to initialize our environment variables at the very beginning of the program. Right now they are needed in provisionRancherOnDigitalOcean/getDigitalOceanPersonalAccessToken.ts
 
 const cli = cac();
 const parsed = cli.parse();

@@ -4,6 +4,8 @@ export default function (): string {
   ): personalAccessToken is undefined {
     return (personalAccessToken as string).length == undefined;
   }
+import dotenv from "dotenv";
+dotenv.config(); // we have to initialize environment vars before we can actually access auth token
 
   const authToken = process.env.DIGITAL_OCEAN_PERSONAL_ACCESS_TOKEN;
 
