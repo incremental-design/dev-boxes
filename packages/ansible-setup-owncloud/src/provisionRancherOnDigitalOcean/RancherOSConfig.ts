@@ -110,45 +110,48 @@ export class RancherOSConfig {
     */
     const pollIndefinitely: boolean =
       maximumNumberOfSecondsToPoll < 0 ? true : false;
-    let shouldPoll: boolean = true;
     let dropletHasIpv6: boolean;
     let ipv4Addresses: Array<any> = [];
     let ipv6Addresses: Array<any> = [];
-
-    if (!pollIndefinitely) {
-      setTimeout(() => {
-        shouldPoll = false;
-      }, maximumNumberOfSecondsToPoll * 1000);
-    }
+    let pollInterval: NodeJS.Timeout;
 
     const pollDigitalOceanForIPAddresses = async () => {
-      while (shouldPoll) {
-        console.log(`polling ${this.dropletID} for IP addresses`);
-        let response: digitalOceanCreateDropletResponse = await getDropletInformation(
-          this.dropletID
-        );
-        if (dropletHasIpv6 === undefined) {
-          console.log(inspect(response, false, null, true));
-          if (response.droplet.features.includes("ipv6")) {
-            dropletHasIpv6 = true;
-          } else {
-            dropletHasIpv6 = false;
-          }
+      console.log(`polling ${this.dropletID} for IP addresses`);
+
+      let response: digitalOceanCreateDropletResponse = await getDropletInformation(
+        this.dropletID
+      );
+
+      if (dropletHasIpv6 === undefined) {
+        // console.log(inspect(response, false, null, true));
+        if (response.droplet.features.includes("ipv6")) {
+          dropletHasIpv6 = true;
+        } else {
+          dropletHasIpv6 = false;
         }
-        if (ipv4Addresses.length == 0) {
-          ipv4Addresses = response.droplet.networks.v4;
-        }
-        if (dropletHasIpv6 && ipv6Addresses.length == 0) {
-          ipv6Addresses = response.droplet.networks.v6;
-        }
-        if (ipv4Addresses.length > 0) {
-          if (ipv6Addresses.length > 0 || !dropletHasIpv6) {
-            break;
-          }
+      }
+
+      if (ipv4Addresses.length == 0) {
+        ipv4Addresses = response.droplet.networks.v4;
+      }
+
+      if (dropletHasIpv6 && ipv6Addresses.length == 0) {
+        ipv6Addresses = response.droplet.networks.v6;
+      }
+      if (ipv4Addresses.length > 0) {
+        if (ipv6Addresses.length > 0 || !dropletHasIpv6) {
+          clearInterval(pollInterval);
         }
       }
     };
-    pollDigitalOceanForIPAddresses();
+
+    pollInterval = setInterval(pollDigitalOceanForIPAddresses, 1000);
+
+    if (!pollIndefinitely) {
+      setTimeout(() => {
+        clearInterval(pollInterval);
+      }, 1000 * maximumNumberOfSecondsToPoll);
+    }
 
     if (ipv4Addresses.length > 0) {
       ipv4Addresses.forEach((address) => {
