@@ -31,5 +31,6 @@ const rancherConfig = new RancherOSConfig();
   const droplet = await rancherConfig
     .setName(answers.dropletName)
     .provisionOn(cloudProviders.digitalOcean);
-  // console.log(droplet.ipv4Addresses);
+  console.log(droplet.ipv4Addresses);
+  console.log(droplet.ipv6Addresses);
 })();

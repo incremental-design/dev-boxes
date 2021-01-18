@@ -31,7 +31,7 @@ export class RancherOSConfig {
   }
 
   set ipv4Addresses(ipv4Addresses: Array<string>) {
-    this._ipv6Addresses = new Set(ipv4Addresses);
+    this._ipv4Addresses = new Set(ipv4Addresses);
     //TODO: iterate through the set and remove any ip addresses that are not valid.
   }
 
@@ -39,8 +39,8 @@ export class RancherOSConfig {
     return Array.from(this._ipv6Addresses);
   }
 
-  set ipv6Addresses(ipv4Addresses: Array<string>) {
-    this._ipv6Addresses = new Set(ipv4Addresses);
+  set ipv6Addresses(ipv6Addresses: Array<string>) {
+    this._ipv6Addresses = new Set(ipv6Addresses);
     //TODO: iterate through the set and remove any ip addresses that are not valid.
   }
 
@@ -60,6 +60,7 @@ export class RancherOSConfig {
   addIpv4Address(ipv4Address: string): this {
     let addressArray = this.ipv4Addresses;
     addressArray.push(ipv4Address);
+    this.ipv4Addresses = addressArray;
     return this;
   }
 
@@ -73,6 +74,7 @@ export class RancherOSConfig {
   addIpv6Address(ipv6Address: string): this {
     let addressArray = this.ipv6Addresses;
     addressArray.push(ipv6Address);
+    this.ipv6Addresses = addressArray;
     return this;
   }
 
@@ -91,7 +93,6 @@ export class RancherOSConfig {
       response.droplet.networks.v4.forEach((item) => {
         if (item.type === "public") {
           this.addIpv4Address(item.ip_address);
-          console.log(item, "logged");
         }
       });
     } catch (error) {
@@ -180,13 +181,11 @@ export class RancherOSConfig {
               ipv6Addresses.forEach((address) => {
                 this.addIpv6Address(address);
               });
-              console.log(ipv4Addresses, ipv6Addresses);
               resolve(this);
             } else {
               reject(this);
             }
           } else {
-            console.log(ipv4Addresses);
             resolve(this);
           }
         } else {
