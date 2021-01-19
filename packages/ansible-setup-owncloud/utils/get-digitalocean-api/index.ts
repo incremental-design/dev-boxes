@@ -16,14 +16,10 @@ const generateAPI = async function () {
 
     const convertedAPI: any = await converter.convert(digitalOceanAPI);
 
-    // console.log(convertedAPI);
-
     const convertedAPIJSON = convertedAPI.stringify({
       syntax: "json",
       order: "openapi",
     });
-
-    console.log(convertedAPIJSON);
 
     const { path, cleanup } = await file();
     fs.writeFileSync(path, convertedAPIJSON); //FIXME: synchronously writing a file slows down the whole program.

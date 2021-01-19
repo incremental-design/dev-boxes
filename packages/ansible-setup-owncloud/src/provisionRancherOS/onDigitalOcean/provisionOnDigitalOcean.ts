@@ -1,11 +1,16 @@
 import DigitalOcean from "do-wrapper";
-import getAuthToken from "./getDigitalOceanPersonalAccessToken";
+// import getAuthToken from "./getDigitalOceanPersonalAccessToken";
+import { getDigitalOceanPersonalAccessToken } from "./accessDigitalOceanPersonalAccessToken";
 
-const authToken = getAuthToken();
-const digitalOceanWrapper = new DigitalOcean(authToken);
+let authToken: string;
+let digitalOceanWrapper: DigitalOcean;
 /*
-  authToken and digitalOceanWrapper are singletons that are going to persist for the life of the program.
+authToken and digitalOceanWrapper are singletons that are going to persist for the life of the program. That's why they are in the module scope
 */
+export async function initializeDigitalOceanAPI(): Promise<void> {
+  authToken = await getDigitalOceanPersonalAccessToken();
+  digitalOceanWrapper = new DigitalOcean(authToken);
+}
 
 export function provisionOnDigitalOcean(
   configObject: object
