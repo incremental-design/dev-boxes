@@ -3,7 +3,7 @@ import prompts from "prompts";
 import {
   RancherOSConfig,
   cloudProviders,
-} from "./provisionRancherOnDigitalOcean/RancherOSConfig";
+} from "./provisionRancherOS/RancherOS";
 
 const cli = cac();
 const parsed = cli.parse();

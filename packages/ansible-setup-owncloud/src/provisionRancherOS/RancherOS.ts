@@ -2,8 +2,8 @@ import {
   provisionOnDigitalOcean,
   digitalOceanCreateDropletResponse,
   getDropletInformation,
-} from "./provisionOnDigitalOcean";
-import { provisionOnAWS } from "./provisionOnAWS";
+} from "./onDigitalOcean/provisionOnDigitalOcean";
+import { provisionOnAWS } from "./onAWS/provisionOnAWS";
 import { inspect } from "util";
 
 export class RancherOSConfig {
