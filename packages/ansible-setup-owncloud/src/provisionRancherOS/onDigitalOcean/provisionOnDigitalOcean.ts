@@ -1,12 +1,20 @@
 import DigitalOcean from "do-wrapper";
 // import getAuthToken from "./getDigitalOceanPersonalAccessToken";
 import { getDigitalOceanPersonalAccessToken } from "./accessDigitalOceanPersonalAccessToken";
+import fs from "fs";
 
 let authToken: string;
 let digitalOceanWrapper: DigitalOcean;
 /*
 authToken and digitalOceanWrapper are singletons that are going to persist for the life of the program. That's why they are in the module scope
 */
+
+const cloudConfigPath = require("./cloud-config.yml");
+/*
+We are asking webpack to keep track of the file path for `./cloud-config.yml`
+*/
+const cloudConfig = fs.readFileSync(cloudConfigPath, "utf8");
+
 export async function initializeDigitalOceanAPI(): Promise<void> {
   authToken = await getDigitalOceanPersonalAccessToken();
   digitalOceanWrapper = new DigitalOcean(authToken);
@@ -24,7 +32,7 @@ export function provisionOnDigitalOcean(
     backups: false,
     ipv6: true,
     private_networking: null,
-    user_data: null,
+    user_data: cloudConfig,
     volumes: null,
     tags: [],
   };

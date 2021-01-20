@@ -17,6 +17,10 @@ module.exports = {
         use: "ts-loader",
         exclude: /node_modules/,
       },
+      {
+        test: /\.yml/,
+        type: "asset/resource",
+      },
     ],
   },
   resolve: {
