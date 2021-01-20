@@ -1,4 +1,16 @@
 ---
-- hosts: localhost
-  vars:
-    some_variable: "some value"
+- hosts: rancher
+
+  tasks:
+    - name: Create a new project directory.
+      ansible.builtin.file:
+        path: /opt/owncloud
+        state: directory
+    - name: Copy docker compose to `/opt/owncloud`.
+      ansible.builtin.copy:
+        src: ./utils/owncloud-docker/docker-compose.yml
+        dest: /opt/owncloud/docker-compose.yml
+    - name: Copy `.env` file to `/opt/owncloud`.
+      ansible.builtin.copy:
+        src: ./utils/owncloud-docker/.env
+        dest: /opt/owncloud/.env
