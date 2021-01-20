@@ -8,6 +8,7 @@
   "license": "MIT",
   "dependencies": {
     "cac": "^6.7.1",
+    "chalk": "^4.1.0",
     "do-wrapper": "^4.4.0",
     "dotenv": "^8.2.0",
     "keytar": "^7.3.0",

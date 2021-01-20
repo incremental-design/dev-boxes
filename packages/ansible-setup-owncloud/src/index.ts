@@ -9,6 +9,7 @@ import {
   setDigitalOceanPersonalAccessToken,
   getDigitalOceanPersonalAccessToken,
 } from "./provisionRancherOS/onDigitalOcean/accessDigitalOceanPersonalAccessToken";
+import chalk from "chalk";
 
 const cli = cac();
 const parsed = cli.parse();
@@ -28,8 +29,9 @@ const questions: Array<prompts.PromptObject> = [
       // @ts-ignore 'prev' is the value of the previous prompt. See: https://github.com/terkelg/prompts#-prompt-objects
       DIGITAL_OCEAN_PERSONAL_ACCESS_TOKEN === "" || prev ? "password" : false,
     name: "newToken",
-    message:
-      "Set your Digital Ocean Personal Access Token. It will be stored in your keychain, and nowhere else.",
+    message: `Set your Digital Ocean Personal Access Token. It will be stored in your keychain, and nowhere else. You can generate a personal access token at ${chalk.underline.yellow(
+      "https://cloud.digitalocean.com/account/api/tokens/new"
+    )}`,
     initial: "",
   },
   {
