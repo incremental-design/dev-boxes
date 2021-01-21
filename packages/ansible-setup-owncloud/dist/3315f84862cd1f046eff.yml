@@ -1,0 +1,22 @@
+---
+- hosts: rancher
+  gather_facts: no
+
+  tasks:
+    - name: wait for rancher OS to become available.
+      wait_for_connection:
+        delay: 60
+    - name: Gather Facts
+      setup:
+    - name: Create a new project directory.
+      ansible.builtin.file:
+        path: /opt/owncloud
+        state: directory
+    - name: Copy docker compose to `/opt/owncloud`.
+      ansible.builtin.copy:
+        src: "{{playbook_dir}}/{{docker_compose | basename}}"
+        dest: /opt/owncloud/docker-compose.yml
+    - name: Copy `.env` file to `/opt/owncloud`.
+      ansible.builtin.copy:
+        src: "{{playbook_dir}}/{{env | basename}}"
+        dest: /opt/owncloud/.env
