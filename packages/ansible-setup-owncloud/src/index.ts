@@ -11,6 +11,7 @@ import {
 } from "./provisionRancherOS/onDigitalOcean/accessDigitalOceanPersonalAccessToken";
 import chalk from "chalk";
 import terminalLink from "terminal-link";
+import { execSync } from "child_process";
 import { resolve, relative } from "path";
 
 const cli = cac();
@@ -49,9 +50,29 @@ const questions: Array<prompts.PromptObject> = [
 
 const rancherConfig = new RancherOSConfig();
 
+function ansibleSetupRancher(
+  ipAddress: string,
+  pathToInventory: string,
+  pathToPlaybook: string,
+  pathToDockerCompose: string,
+  pathToEnv: string
+) {
+  return execSync(
+    `ansible-playbook '${pathToPlaybook}' --extra-vars='rancher_ip=${ipAddress} docker_compose=${pathToDockerCompose} env=${pathToEnv}' --inventory='${pathToInventory}'`,
+    { stdio: "inherit" }
+  );
+}
 const inventory = relative(
   process.cwd(),
   resolve(__dirname, require("../inventory.yml"))
+);
+const env = relative(
+  process.cwd(),
+  resolve(__dirname, require("../utils/owncloud-docker/.env"))
+);
+const dockerCompose = relative(
+  process.cwd(),
+  resolve(__dirname, require("../utils/owncloud-docker/docker-compose.yml"))
 );
 const playbook = relative(
   process.cwd(),
@@ -68,6 +89,6 @@ const playbook = relative(
   const droplet = await rancherConfig
     .setName(answers.dropletName)
     .provisionOn(cloudProviders.digitalOcean);
-  console.log(droplet.ipv4Addresses);
-  console.log(droplet.ipv6Addresses);
+  const ipAddress = droplet.ipv4Addresses.slice(-1)[0];
+  ansibleSetupRancher(ipAddress, inventory, playbook, dockerCompose, env);
 })();
