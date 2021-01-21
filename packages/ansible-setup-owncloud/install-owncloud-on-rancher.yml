@@ -6,6 +6,9 @@
       ansible.builtin.file:
         path: /opt/owncloud
         state: directory
+        register: did_succeed
+        until: did_succeed is not failed
+        retries: 100
     - name: Copy docker compose to `/opt/owncloud`.
       ansible.builtin.copy:
         src: ./utils/owncloud-docker/docker-compose.yml
