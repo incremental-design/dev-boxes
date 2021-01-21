@@ -18,7 +18,7 @@ module.exports = {
         exclude: /node_modules/,
       },
       {
-        test: /\.yml/,
+        test: /\.yml|\.env/,
         type: "asset/resource",
       },
     ],
