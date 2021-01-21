@@ -2,6 +2,7 @@ import DigitalOcean from "do-wrapper";
 // import getAuthToken from "./getDigitalOceanPersonalAccessToken";
 import { getDigitalOceanPersonalAccessToken } from "./accessDigitalOceanPersonalAccessToken";
 import fs from "fs";
+import { relative, resolve } from "path";
 
 let authToken: string;
 let digitalOceanWrapper: DigitalOcean;
@@ -9,7 +10,10 @@ let digitalOceanWrapper: DigitalOcean;
 authToken and digitalOceanWrapper are singletons that are going to persist for the life of the program. That's why they are in the module scope
 */
 
-const cloudConfigPath = require("./cloud-config.yml");
+const cloudConfigPath = relative(
+  process.cwd(),
+  resolve(__dirname, require("./cloud-config.yml"))
+);
 /*
 We are asking webpack to keep track of the file path for `./cloud-config.yml`
 */

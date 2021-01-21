@@ -11,6 +11,7 @@ import {
 } from "./provisionRancherOS/onDigitalOcean/accessDigitalOceanPersonalAccessToken";
 import chalk from "chalk";
 import terminalLink from "terminal-link";
+import { resolve, relative } from "path";
 
 const cli = cac();
 const parsed = cli.parse();
@@ -47,6 +48,15 @@ const questions: Array<prompts.PromptObject> = [
 ];
 
 const rancherConfig = new RancherOSConfig();
+
+const inventory = relative(
+  process.cwd(),
+  resolve(__dirname, require("../inventory.yml"))
+);
+const playbook = relative(
+  process.cwd(),
+  resolve(__dirname, require("../install-owncloud-on-rancher.yml"))
+);
 
 (async () => {
   DIGITAL_OCEAN_PERSONAL_ACCESS_TOKEN = await getDigitalOceanPersonalAccessToken();
