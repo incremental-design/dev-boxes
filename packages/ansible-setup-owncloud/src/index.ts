@@ -19,34 +19,38 @@ const parsed = cli.parse();
 
 let DIGITAL_OCEAN_PERSONAL_ACCESS_TOKEN: string = "";
 
-const questions: Array<prompts.PromptObject> = [
-  {
-    type: DIGITAL_OCEAN_PERSONAL_ACCESS_TOKEN !== "" ? "confirm" : false,
-    name: "resetToken",
-    message:
-      "Your Digital Ocean Personal Access Token has been retrieved from your keychain. Would you like to change it?",
-    initial: false,
-  },
-  {
-    type:
-      // @ts-ignore 'prev' is the value of the previous prompt. See: https://github.com/terkelg/prompts#-prompt-objects
-      DIGITAL_OCEAN_PERSONAL_ACCESS_TOKEN === "" || prev ? "password" : false,
-    name: "newToken",
-    message: `Set your Digital Ocean Personal Access Token. It will be stored in your keychain, and nowhere else. You can generate a personal access token at ${chalk.underline.blueBright(
-      terminalLink(
-        "DigitalOcean > Account > API",
-        "https://cloud.digitalocean.com/account/api/tokens/new"
-      )
-    )}`,
-    initial: "",
-  },
-  {
-    type: "text",
-    name: "dropletName",
-    message: "What do you want to name your droplet?",
-    initial: "rancher",
-  },
-];
+function getQuestions(token: string): Array<prompts.PromptObject> {
+  return [
+    {
+      type: token ? "confirm" : false,
+      name: "resetToken",
+      message:
+        "Your Digital Ocean Personal Access Token has been retrieved from your keychain. Would you like to change it?",
+      initial: false,
+    },
+    {
+      type:
+        // @ts-ignore 'prev' is the value of the previous prompt. See: https://github.com/terkelg/prompts#-prompt-objects
+        (prev) => {
+          return token === "" || prev ? "password" : false;
+        },
+      name: "newToken",
+      message: `Set your Digital Ocean Personal Access Token. It will be stored in your keychain, and nowhere else. You can generate a personal access token at ${chalk.underline.blueBright(
+        terminalLink(
+          "DigitalOcean > Account > API",
+          "https://cloud.digitalocean.com/account/api/tokens/new"
+        )
+      )}`,
+      initial: "",
+    },
+    {
+      type: "text",
+      name: "dropletName",
+      message: "What do you want to name your droplet?",
+      initial: "rancher",
+    },
+  ];
+}
 
 const rancherConfig = new RancherOSConfig();
 
@@ -81,8 +85,11 @@ const playbook = relative(
 
 (async () => {
   DIGITAL_OCEAN_PERSONAL_ACCESS_TOKEN = await getDigitalOceanPersonalAccessToken();
-  const answers = await prompts(questions);
-  if (answers.newToken !== "") {
+  const answers = await prompts(
+    getQuestions(DIGITAL_OCEAN_PERSONAL_ACCESS_TOKEN)
+  );
+  if (answers.newToken ?? undefined) {
+    console.log(answers.newToken);
     await setDigitalOceanPersonalAccessToken(answers.newToken);
   }
   await initializeDigitalOceanAPI();
