@@ -20,3 +20,7 @@
       ansible.builtin.copy:
         src: "{{playbook_dir}}/{{env | basename}}"
         dest: /opt/owncloud/.env
+    # - name: Start owncloud.
+    #   command: docker-compose up -d
+    #   args:
+    #     chdir: /opt/owncloud
