@@ -6,6 +6,7 @@
     - name: wait for rancher OS to become available.
       wait_for_connection:
         delay: 60
+        timeout: 900
     - name: Gather Facts
       setup:
     - name: Create a new project directory.
@@ -22,7 +23,7 @@
         dest: /opt/owncloud/.env
     - name: Download docker compose.
       get_url:
-        url: "https://github.com/docker/compose/releases/download/1.21.2/docker-compose-{{ansible_system}}-{{ansible_architecture}}"
+        url: "https://github.com/docker/compose/releases/download/1.28.0/docker-compose-{{ansible_system}}-{{ansible_architecture}}"
         dest: /usr/local/bin/docker-compose
     - name: Make docker compose executable.
       ansible.builtin.file:

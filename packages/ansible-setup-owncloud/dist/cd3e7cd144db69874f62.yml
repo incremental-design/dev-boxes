@@ -1,0 +1,8 @@
+#cloud-config
+rancher:
+  console: ubuntu
+runcmd:
+  - [sudo ros service enable rancher-server-stable]
+  - [sudo ros service up rancher-server]
+  - [apt-get, update]
+  - [apt-get, install, -y, python]

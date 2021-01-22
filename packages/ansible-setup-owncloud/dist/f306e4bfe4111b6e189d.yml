@@ -6,6 +6,7 @@
     - name: wait for rancher OS to become available.
       wait_for_connection:
         delay: 60
+        timeout: 900
     - name: Gather Facts
       setup:
     - name: Create a new project directory.
@@ -21,29 +22,19 @@
         src: "{{playbook_dir}}/{{env | basename}}"
         dest: /opt/owncloud/.env
     - name: Download docker compose.
-      get_url:
-        url: "https://github.com/docker/compose/releases/download/1.21.2/docker-compose-{{ansible_system}}-{{ansible_architecture}}"
-        dest: /usr/local/bin/docker-compose
+      command: curl -L "https://github.com/docker/compose/releases/download/1.28.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+      become: yes
     - name: Make docker compose executable.
-      ansible.builtin.file:
-        path: /usr/local/bin/docker-compose
-        mode: "0755"
+      command: chmod +x /usr/local/bin/docker-compose
+      become: yes
     - name: link docker-compose binary.
-      # command: ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
-      # become: yes
-      ansible.builtin.file:
-        src: /usr/local/bin/docker-compose
-        dest: /usr/bin/docker-compose
-        owner: rancher
-        group: rancher
-        state: link
+      command: ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+      become: yes
     - name: Check docker compose version.
       command: docker-compose --version
       register: version
-    - name: Version is
-      ansible.builtin.debug:
-        var: version
-        verbosity: 2
+    - debug: version.stdout
+    - debug: version.stderr
     - name: Start owncloud.
       command: docker-compose up -d
       args:
