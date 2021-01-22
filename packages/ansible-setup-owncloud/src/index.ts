@@ -47,7 +47,7 @@ function getQuestions(token: string): Array<prompts.PromptObject> {
       type: "text",
       name: "dropletName",
       message: "What do you want to name your droplet?",
-      initial: "rancher",
+      initial: "owncloud",
     },
   ];
 }
