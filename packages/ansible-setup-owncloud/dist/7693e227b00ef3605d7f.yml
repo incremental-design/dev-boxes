@@ -44,6 +44,8 @@
         path: /usr/local/bin/docker-compose
         mode: "0755"
     - name: link docker-compose binary.
+      # command: ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+      # become: yes
       ansible.builtin.file:
         src: /usr/local/bin/docker-compose
         dest: /usr/bin/docker-compose
@@ -58,10 +60,8 @@
         chdir: /opt/owncloud
     - name: Wait for owncloud to become available.
       wait_for:
-        port: 8080
-        delay: 60
         timeout: 600
-    - name: Delete .env file so passwords are not stored in plain text.
-      ansible.builtin.file:
-        path: /opt/owncloud/.env
-        state: absent
+        port: 8080
+        host: rancher
+        delay: 30
+        state: started
