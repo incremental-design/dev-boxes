@@ -44,8 +44,6 @@
         path: /usr/local/bin/docker-compose
         mode: "0755"
     - name: link docker-compose binary.
-      # command: ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
-      # become: yes
       ansible.builtin.file:
         src: /usr/local/bin/docker-compose
         dest: /usr/bin/docker-compose
