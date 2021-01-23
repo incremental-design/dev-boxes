@@ -58,9 +58,6 @@
         chdir: /opt/owncloud
     - name: Wait for owncloud to become available.
       wait_for:
-        timeout: 600
         port: 8080
-        host: rancher
-        delay: 30
-        state: started
-      delegate_to: localhost
+        delay: 60
+        timeout: 600
