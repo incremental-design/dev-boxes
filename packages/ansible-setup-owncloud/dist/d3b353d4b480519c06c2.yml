@@ -20,21 +20,6 @@
       ansible.builtin.copy:
         src: "{{playbook_dir}}/{{env | basename}}"
         dest: /opt/owncloud/.env
-    - name: Update owncloud admin password.
-      ansible.builtin.lineinfile:
-        path: /opt/owncloud/.env
-        regexp: "^ADMIN_PASSWORD="
-        line: "ADMIN_PASSWORD={{admin_password}}"
-    - name: Update MariaDB root user password.
-      ansible.builtin.lineinfile:
-        path: /opt/owncloud/.env
-        regexp: "^MARIADB_ROOT_PASSWORD="
-        line: "MARIADB_ROOT_PASSWORD={{maria_db_root_password}}"
-    - name: Update MariaDB owncloud user password.
-      ansible.builtin.lineinfile:
-        path: /opt/owncloud/.env
-        regexp: "^MARIADB_PASSWORD="
-        line: "MARIADB_PASSWORD={{maria_db_password}}"
     - name: Download docker compose.
       get_url:
         url: "https://github.com/docker/compose/releases/download/1.21.2/docker-compose-{{ansible_system}}-{{ansible_architecture}}"
@@ -54,6 +39,11 @@
         state: link
     - name: Check docker compose version.
       command: docker-compose --version
+      register: version
+    - name: Version is
+      ansible.builtin.debug:
+        var: version
+        verbosity: 2
     - name: Start owncloud.
       command: docker-compose up -d
       args:
@@ -61,8 +51,8 @@
     - name: Wait for owncloud to become available.
       wait_for:
         timeout: 600
-        port: 8080
+        port: 8000
         host: rancher
         delay: 30
-        state: started
+        state: open
       delegate_to: localhost

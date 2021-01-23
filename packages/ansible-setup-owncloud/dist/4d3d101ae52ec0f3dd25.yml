@@ -25,12 +25,12 @@
         path: /opt/owncloud/.env
         regexp: "^ADMIN_PASSWORD="
         line: "ADMIN_PASSWORD={{admin_password}}"
-    - name: Update MariaDB root user password.
+    - name: Update owncloud admin password.
       ansible.builtin.lineinfile:
         path: /opt/owncloud/.env
         regexp: "^MARIADB_ROOT_PASSWORD="
         line: "MARIADB_ROOT_PASSWORD={{maria_db_root_password}}"
-    - name: Update MariaDB owncloud user password.
+    - name: Update owncloud admin password.
       ansible.builtin.lineinfile:
         path: /opt/owncloud/.env
         regexp: "^MARIADB_PASSWORD="
