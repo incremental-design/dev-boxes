@@ -39,7 +39,7 @@ check-os () {
     which sw_vers &>/dev/null
     if [ $? -eq 0 ]; then
         #this is a macOS, check which version
-        sw_vers -productVersion | grep 10.15 &>/dev/null
+        sw_vers -productVersion | grep "10.15\|11" &>/dev/null
         if [ $? -ne 0 ]; then
             #this is not macOS 10.15
             printf "\nSorry, this script only works on \e[1mMacOS 10.15\e[0m." | fold -w $(tput cols) 1>&2
