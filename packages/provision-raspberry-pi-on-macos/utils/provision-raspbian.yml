@@ -18,9 +18,8 @@
       args:
         executable: /bin/bash
 
-    - name: Switch apt repository mirrors and then update package list.
+    - name: Update package list (This could take 10+ minutes).
       shell: >
-        sed -i 's/raspbian.raspberrypi.org/mirror.glennmcgurrin.com/' /etc/apt/sources.list &&
         apt-get update
       args:
         warn: false
