@@ -1,6 +1,8 @@
 ---
 - hosts: raspberrypi
 
+  # All of the plays in this playbook are shell commands because the bundled version of python on Raspbian doesn't match the version of python that ansible needs.
+
   tasks:
     - name: Expand root filesystem.
       shell: >
@@ -15,6 +17,12 @@
     - name: Update DHCP servers.
       shell: >
         echo "static domain_name_servers=1.1.1.1 1.0.0.1" >> /etc/dhcpcd.conf && service dhcpcd restart && sleep 5
+      args:
+        executable: /bin/bash
+
+    - name: Disable IPv6 networking (because it causes apt-get to fail).
+      shell: >
+        echo "net.ipv6.conf.all.disable_ipv6 = 1" >> /etc/sysctl.conf && echo "net.ipv6.conf.default.disable_ipv6 = 1" >> /etc/sysctl.conf && echo "net.ipv6.conf.lo.disable_ipv6 = 1" >> /etc/sysctl.conf && service networking restart && sleep 5
       args:
         executable: /bin/bash
 
