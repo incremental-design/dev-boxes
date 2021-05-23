@@ -32,9 +32,39 @@
       args:
         warn: false
 
-    - name: Install tshark, tmux, mosh, nmap, iperf3, htop
+    - name: Install tshark
       shell: >
-        export DEBIAN_FRONTEND=noninteractive && apt-get install -qq -y tshark tmux mosh nmap iperf3 htop
+        export DEBIAN_FRONTEND=noninteractive && apt-get install -qq -y tshark
+      args:
+        warn: false
+
+    - name: Install tmux.
+      shell: >
+        apt-get install -qq -y tmux
+      args:
+        warn: false
+
+    - name: Install mosh.
+      shell: >
+        apt-get install -qq -y mosh
+      args:
+        warn: false
+
+    - name: Install nmap.
+      shell: >
+        apt-get install -qq -y nmap
+      args:
+        warn: false
+
+    - name: Install iperf3.
+      shell: >
+        apt-get install -qq -y iperf3
+      args:
+        warn: false
+
+    - name: Install htop.
+      shell: >
+        apt-get install -qq -y htop
       args:
         warn: false
 
