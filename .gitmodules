@@ -1,9 +1,0 @@
-[submodule "ansible-setup-owncloud"]
-	path = ansible-setup-owncloud
-	url = https://designbyajay@github.com/incremental-design/ansible-setup-owncloud
-[submodule "provision-rasbperry-pi-on-macos"]
-	path = provision-rasbperry-pi-on-macos
-	url = https://designbyajay@github.com/designbyajay/provision-raspberry-pi-on-macos.git
-[submodule "designbyajay-environment"]
-	path = designbyajay-environment
-	url = https://designbyajay@github.com/designbyajay/designbyajay-environment.git
