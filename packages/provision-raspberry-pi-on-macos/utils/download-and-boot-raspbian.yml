@@ -1,0 +1,192 @@
+---
+- hosts: localhost
+  vars:
+    image_to_download: "Raspberry Pi OS (32-bit) Lite"
+    image_url: "http://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2020-08-24/2020-08-20-raspios-buster-armhf-lite.zip"
+    staging_directory: "{{ playbook_dir }}/.{{ image_to_download | lower | regex_replace('[^a-zA-Z0-9]','_') | regex_replace('__','_') }}"
+    image_dest: "{{ staging_directory }}/{{ image_url | urlsplit('path') | basename }}"
+    image_kernel: "QEMU 5.4.51 Buster"
+    image_dtb: "Versatile-PB Buster 5.4.1"
+    image_kernel_url: "https://raw.githubusercontent.com/dhruvvyas90/qemu-rpi-kernel/master/kernel-qemu-5.4.51-buster"
+    kernel_dest: "{{ staging_directory }}/{{ image_kernel_url | urlsplit('path') | basename }}"
+    image_dtb_url: "https://raw.githubusercontent.com/dhruvvyas90/qemu-rpi-kernel/master/versatile-pb-buster-5.4.51.dtb"
+    dtb_dest: "{{ staging_directory }}/{{ image_dtb_url | urlsplit('path') | basename }}"
+
+  tasks:
+    - block:
+        - name: Get the amount of free space in {{ playbook_dir }}.
+          shell: df ./ | awk '{print $4}' | tail -1
+          register: freespace
+
+        - name: Get the size of the {{ image_to_download }} image.
+          uri:
+            url: "{{ image_url }}"
+            method: HEAD
+          register: image_header
+
+        - name: Get the size of the {{ image_kernel }} kernel.
+          uri:
+            url: "{{ image_kernel_url }}"
+            method: HEAD
+          register: kernel_header
+
+        - name: Get the size of the {{ image_dtb }} device tree blob.
+          uri:
+            url: "{{ image_dtb_url }}"
+            method: HEAD
+          register: dtb_header
+
+        - name: Calculate the space remaining in {{ playbook_dir }} after downloading.
+          debug:
+            msg: There will be {{( ( freespace.stdout|int * 512 ) - image_header.content_length|int - kernel_header.content_length|int - dtb_header.content_length|int)|human_readable}} of space left over in {{playbook_dir}} after downloading the {{image_header.content_length|int|human_readable}} {{ image_to_download }} image, the {{kernel_header.content_length|int|human_readable}} {{ image_kernel }} kernel, and the {{dtb_header.content_length|int|human_readable}} {{ image_dtb }} device tree blob.
+          failed_when: ((image_header.content_length|int + kernel_header.content_length|int + dtb_header.content_length|int) > (freespace.stdout|int * 512))
+      rescue:
+        - name: Exit because there is not enough space in {{playbook_dir}}.
+          debug:
+            msg: You need at least {{(image_header.content_length|int + kernel_header.content_length|int + dtb_header.content_length|int - (freespace.stdout|int * 512))|human_readable}} more space to download the {{ image_to_download }} image. Please clear that space and try again.
+        - meta: end_play
+
+    - name: Make the {{ image_dest | dirname }} directory.
+      file:
+        path: "{{ image_dest | dirname }}"
+        state: directory
+
+    - name: Download the {{ image_to_download }} image to {{ image_dest }}.
+      get_url:
+        url: "{{ image_url }}"
+        dest: "{{ image_dest}}"
+
+    - name: Download the {{ image_kernel }} kernel to {{ kernel_dest }}.
+      get_url:
+        url: "{{ image_kernel_url }}"
+        dest: "{{ kernel_dest }}"
+
+    - name: Download the {{ image_dtb }} device tree blob to {{ dtb_dest }}.
+      get_url:
+        url: "{{ image_dtb_url }}"
+        dest: "{{ dtb_dest }}"
+
+    - block:
+        - name: Check to see if there is enough space to unzip the {{ image_to_download }} image.
+          shell: unzip -l {{ image_dest | quote }} | tail -1 | awk '{print $1}'
+          args:
+            warn: false
+          register: image_size_unzipped
+        - name: Calculate the space remaining in {{ playbook_dir }} after unzipping the image.
+          debug:
+            msg: There will be {{( ( freespace.stdout|int * 512 ) - image_header.content_length|int - kernel_header.content_length|int - dtb_header.content_length|int - image_size_unzipped.stdout|int)|human_readable}} of space left over in {{playbook_dir}} after unzipping the {{image_size_unzipped.stdout|int|human_readable}} {{ image_to_download }} image.
+          failed_when: ((image_header.content_length|int + kernel_header.content_length|int + dtb_header.content_length|int + image_size_unzipped.stdout|int) > (freespace.stdout|int * 512))
+      rescue:
+        - name: Exit because there is not enough space to unzip the image.
+          debug:
+            msg: You need at least {{(image_header.content_length|int + kernel_header.content_length|int + dtb_header.content_length|int + image_size_unzipped.stdout|int - (freespace.stdout|int * 512))|human_readable}} more space to unzip the {{ image_to_download }} image. Please clear that space and try again.
+        - meta: end_play
+
+    - name: Unzip the {{ image_to_download }} image.
+      unarchive:
+        remote_src: yes
+        src: "{{image_dest}}"
+        dest: "{{image_dest | dirname }}"
+        list_files: yes
+      register: unzipped_image
+
+    - debug:
+        msg: "{{ (( freespace.stdout|int * 512 ) - image_header.content_length|int - kernel_header.content_length|int - dtb_header.content_length|int - ('4 GB' | human_to_bytes|int)) }}"
+
+    - block:
+        - name: Calculate the space remaining in {{ playbook_dir }} after resizing the image.
+          debug:
+            msg: There will be {{( ( freespace.stdout|int * 512 ) - image_header.content_length|int - kernel_header.content_length|int - dtb_header.content_length|int - ('4 GB' | human_to_bytes|int))|human_readable}} of space left over in {{playbook_dir}} after expanding the image to 4GB.
+          failed_when: ((image_header.content_length|int + kernel_header.content_length|int + dtb_header.content_length|int + ('4 GB' | human_to_bytes | int)) > (freespace.stdout|int * 512))
+      rescue:
+        - name: Exit because there is not enough space to expand the image.
+          debug:
+            msg: You need at least {{(image_header.content_length|int + kernel_header.content_length|int + dtb_header.content_length|int + ('4 GB' | human_to_bytes | int) - (freespace.stdout|int * 512))|human_readable}} more space to expand the {{ image_to_download }} image. Please clear that space and try again.
+        - meta: end_play
+
+    - name: Expand the image size to 4GB
+      shell: >
+        hdiutil resize -size 4G "{{ unzipped_image.dest | quote}}/{{ unzipped_image.files[0] | quote}}"
+
+    - name: Mount the "{{ image_to_download }}" image.
+      shell: >
+        hdiutil attach "{{ unzipped_image.dest | quote}}/{{ unzipped_image.files[0] | quote}}" -mountroot "{{ staging_directory | quote }}"
+
+    - name: Enable SSH access on first boot.
+      file:
+        path: "{{ staging_directory }}/boot/ssh"
+        state: touch
+        mode: "0777"
+
+    - name: copy SSH config script to image.
+      copy:
+        src: enable-ssh-key-auth-in-raspbian.sh
+        dest: "{{ staging_directory | quote }}/boot/enable-ssh-key-auth-in-raspbian.sh"
+        force: yes
+
+    - name: make authorized key file.
+      file:
+        state: touch
+        path: "{{ staging_directory | quote }}/boot/authorized_keys"
+
+    - name: get current user
+      local_action: command whoami
+      register: current_user
+
+    - block:
+        - name: copy ed25519.pub to image.
+          authorized_key:
+            user: "{{current_user.stdout}}"
+            state: present
+            key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_ed25519.pub')}}"
+            path: "{{ staging_directory | quote }}/boot/authorized_keys"
+      rescue:
+        - name: copy id_rsa.pub to image.
+          authorized_key:
+            user: "{{current_user.stdout}}"
+            state: present
+            key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub')}}"
+            path: "{{ staging_directory | quote }}/boot/authorized_keys"
+
+    - name: Unmount the {{ image_to_download }} image.
+      shell: >
+        hdiutil detach "{{ staging_directory | quote }}/boot"
+
+    - name: Boot the rasbpian image with QEMU.
+      async: 3600
+      poll: 0
+      shell: >
+        qemu-system-arm
+        -M versatilepb
+        -cpu arm1176
+        -m 256
+        -drive "file={{unzipped_image.dest|quote}}/{{unzipped_image.files[0]|quote}},if=none,index=0,media=disk,format=raw,id=disk0"
+        -device "virtio-blk-pci,drive=disk0,disable-modern=on,disable-legacy=off"
+        -nic "user,hostfwd=tcp:127.0.0.1:50022-:22"
+        -dtb {{ dtb_dest | quote }}
+        -kernel {{ kernel_dest | quote }}
+        -append 'root=/dev/vda2 panic=1'
+
+    - name: Wait 4 minutes before provisioning the {{ image_to_download }} image.
+      pause:
+        minutes: 4
+
+    - name: Clear fingerprint for 127.0.0.1:50022
+      lineinfile:
+        path: "{{ lookup('file', lookup('env','HOME') + '/.ssh/known_hosts')}}"
+        regexp: '^127\.0\.0\.1:50022'
+        state: absent
+
+    - name: Turn on SSH key-based authentication
+      shell: >
+        ./turn-on-ssh-key-auth-expects.sh
+      retries: 3
+      delay: 20
+      register: result
+      until: result.rc == 0
+      
+    - name: Wait 1 minute before continuing.
+      pause:
+        minutes: 1
+
+- import_playbook: provision-raspbian.yml

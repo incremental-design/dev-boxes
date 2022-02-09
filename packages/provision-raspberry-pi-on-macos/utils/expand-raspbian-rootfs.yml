@@ -1,0 +1,15 @@
+---
+- hosts: raspberrypi
+
+  tasks:
+    - name: Expand root filesystem.
+      shell: >
+        raspi-config --expand-rootfs
+      args:
+        executable: /bin/bash
+
+    - name: reboot down pi.
+      shell: >
+        shutdown now -r
+      args:
+        executable: /bin/bash
