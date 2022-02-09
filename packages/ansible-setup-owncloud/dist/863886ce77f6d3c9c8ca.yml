@@ -1,0 +1,14 @@
+#cloud-config
+rancher:
+  services:
+    rancher-server:
+      image: rancher/server:stable
+      ports:
+        - 8080:8080
+      restart: always
+      volumes:
+        - /mnt/rancher-server-mysql:/var/lib/mysql
+  console: ubuntu
+runcmd:
+  - [apt-get, update]
+  - [apt-get, install, -y, python]

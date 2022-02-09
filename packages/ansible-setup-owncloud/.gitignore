@@ -1,0 +1,5 @@
+node_modules
+/.env
+yarn-error.log
+digitalOceanAPI*.json
+.DS_Store

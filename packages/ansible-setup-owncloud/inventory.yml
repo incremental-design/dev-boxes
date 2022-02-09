@@ -1,0 +1,8 @@
+all:
+  hosts:
+    rancher:
+      ansible_host: "{{ rancher_ip }}"
+      ansible_connection: ssh
+      ansible_user: rancher
+      ansible_become: yes
+      ansible_ssh_extra_args: "-o StrictHostKeyChecking=no"

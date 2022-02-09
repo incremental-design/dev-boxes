@@ -1,0 +1,42 @@
+{
+  "name": "ansible-setup-owncloud",
+  "version": "1.0.0",
+  "description": "Automate the installation of OwnCloud on RancherOS",
+  "main": "index.js",
+  "repository": "https://github.com/incremental-design/ansible-setup-owncloud",
+  "author": "Ajay Ganapathy <lets.talk@designbyajay.com>",
+  "license": "MIT",
+  "dependencies": {
+    "cac": "^6.7.1",
+    "chalk": "^4.1.0",
+    "do-wrapper": "^4.4.0",
+    "dotenv": "^8.2.0",
+    "generate-password": "^1.6.0",
+    "keytar": "^7.3.0",
+    "prompts": "^2.4.0",
+    "readline": "^1.3.0",
+    "terminal-link": "^2.1.1",
+    "tmp-promise": "^3.0.2",
+    "util": "^0.12.3"
+  },
+  "devDependencies": {
+    "@apidevtools/swagger-parser": "^10.0.2",
+    "@types/node": "^14.14.20",
+    "@types/prompts": "^2.0.9",
+    "api-spec-converter": "^2.11.2",
+    "eslint": "^7.17.0",
+    "eslint-config-airbnb-typescript-prettier": "^4.1.0",
+    "prettier": "^2.2.1",
+    "ts-loader": "^8.0.14",
+    "typescript": "<=4.1.0",
+    "webpack": "^5.12.2",
+    "webpack-cli": "^4.3.1",
+    "webpack-node-externals": "^2.5.2"
+  },
+  "scripts": {
+    "getDigitalOceanAPISpec": "stat utils/get-digitalocean-api/index.js && node utils/get-digitalocean-api/index.js || $( yarn generateDigitalOceanAPISpec && yarn getDigitalOceanAPISpec )",
+    "generateDigitalOceanAPISpec": "yarn install && cd utils/get-digitalocean-api/ && npx webpack --mode=production",
+    "build": "yarn install && npx webpack --mode=production",
+    "serve": "yarn exec './yarnBuildSilent.sh' && node dist/index.js"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "actions" : {
+    "build" : {
+      "enabled" : true,
+      "script" : "yarn build"
+    }
+  },
+  "identifier" : "D248CD8A-9045-4601-95C3-8FA5FB6E6768"
+}
