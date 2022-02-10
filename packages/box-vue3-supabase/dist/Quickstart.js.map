@@ -1,0 +1,1 @@
+{"version":3,"sources":["../src/Quickstart.ts"],"names":["quickstart"],"mappings":";;;;;;;AACA,eAAeA,UAAf,GAA0C,CACxC;AACD;;eACcA,U","sourcesContent":["\nasync function quickstart():Promise<void> {\n  // your code here\n}\nexport default quickstart;\n"],"file":"Quickstart.js"}
