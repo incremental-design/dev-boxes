@@ -34,6 +34,10 @@ Every package in Dev Boxes inherits from the `src/base-box` package. This packag
 
 Dev Boxes is a monorepo. Each folder in `packages` is its own npm package. You need to [install lerna](https://lerna.js.org) before you can build, run or test packages.
 
+Lerna uses yarn workspaces to link packages together. You have install [`yarn`](https://classic.yarnpkg.com/lang/en/docs/install/#mac-stable), and then run `yarn config set workspaces-experimental true` before you can use Lerna.
+
+**MAKE SURE YOU INSTALL YARN v1.22.7** not version 2. Use `yarn -v` to check the version of yarn that you have installed.
+
 <!-- at some point link over to incremental.design article on lerna bootstrap -->
 
 All packages use [docker](https://www.docker.com/products/docker-desktop), [QEMU](https://formulae.brew.sh/formula/qemu) or some combination of both to build and run containrs and VMs. Install both before you get started.
@@ -56,13 +60,25 @@ Once you install lerna, docker and QEMU, clone this repository. Then run `[lerna
 - [`package.json`](https://docs.npmjs.com/cli/v7/configuring-npm/package-json)
 - `README.md` - **you are here**
 
+### Install dependencies:
+
+`lerna add <name of package>` to install a [dependency](https://classic.yarnpkg.com/en/docs/dependency-types#toc-dependencies) for EVERY package in this monorepo.
+
+`lerna add --dev <name of package>` to install a [dev dependency](https://classic.yarnpkg.com/en/docs/dependency-types#toc-devdependencies) for EVERY package in this monorepo.
+
+`lerna add <name-of-package> --scope @incremental.design/dev-boxes/<name-of-package>` to install a [dependency](https://classic.yarnpkg.com/en/docs/dependency-types#toc-dependencies) in a single package in this monorepo.
+
+`lerna add --dev <name of package> --scope @incremental.design/dev-boxes/<name-of-package>` to install a [dev dependency](https://classic.yarnpkg.com/en/docs/dependency-types#toc-devdependencies) for EVERY package in this monorepo.
+
 ### Build:
 
 Use `lerna run build` to build each package for production. This command grabs everything in each package's `src` folder, bundles it, and places it in each bundle's `dist` folder.
 
 ### Run:
 
-`lerna bootstrap` to run each package.
+Many of the packages in Dev Boxes launch some sort of web GUI. Use `lerna run serve` to set up each package's containers and VMs and then launch their respective GUIs.
+
+Note that not ALL of the packages in Dev Boxes can be run.
 
 ### Test:
 
