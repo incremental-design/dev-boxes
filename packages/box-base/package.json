@@ -1,0 +1,22 @@
+{
+  "main": "dist/quickstart.js",
+  "repository": "https://github.com/incremental-design/dev-boxes",
+  "license": "MIT",
+  "private": false,
+  "devDependencies": {
+    "@babel/cli": "^7.17.0",
+    "@babel/core": "^7.17.2",
+    "@babel/preset-env": "^7.16.11",
+    "@babel/preset-typescript": "^7.16.7",
+    "@types/node": "^14.14.20",
+    "eslint": "^7.17.0",
+    "typescript": "^4.5.5"
+  },
+  "scripts": {
+    "build": "npx babel --root-mode upward --extensions \".ts\" src --out-dir dist && tsc --emitDeclarationOnly"
+  },
+  "name": "@incremental.design/packageName",
+  "version": "0.0.0",
+  "author": "ajay@incremental.design",
+  "description": "Alpine linux with latest node. Starting point for every other package in the dev-boxes monorepo"
+}

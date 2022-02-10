@@ -96,7 +96,6 @@ export default ():void => {
 `
 
 function stubPackage() {
-  console.log(process.argv)
 
   const author = process.argv[3];
   const description = process.argv[4];
