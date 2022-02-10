@@ -101,11 +101,12 @@ function stubPackage() {
   const author = process.argv[3];
   const description = process.argv[4];
   if (packageName.match(/^[^a-z0-9-]+$/)) throw new Error('package name must only contain lowercase letters, numbers, and dashes');
+  if (!packageName.match(/^box/)) throw new Error(`package name must start with "box-" i.e. box-${packageName}`);
 
   const packagePath = path.resolve(__dirname, 'packages', process.argv[2])
   fs.mkdirSync(packagePath, { mode: 0o755 /* same as drwxr-xr-x */ });
   fs.writeFileSync(path.resolve(packagePath, 'tsconfig.json'), JSON.stringify(tsconfig, null, 2), { mode: 0o644 /* same as -rw-r--r-- */ });
-  const p = { ...package, name: packageName, version, author, description };
+  const p = { ...package, name: `@incremental.design/packageName`, version, author, description };
   fs.writeFileSync(path.resolve(packagePath, 'package.json'), JSON.stringify(p, null, 2), { mode: 0o644 /* same as -rw-r--r-- */ });
   fs.writeFileSync(path.resolve(packagePath, 'README.md'), readme, { mode: 0o644 /* same as -rw-r--r-- */ });
   fs.mkdirSync(path.join(packagePath, 'src'), { mode: 0o755 /* same as drwxr-xr-x */ });

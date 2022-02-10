@@ -60,6 +60,14 @@ Once you install lerna, docker and QEMU, clone this repository. Then run `[lerna
 - [`package.json`](https://docs.npmjs.com/cli/v7/configuring-npm/package-json)
 - `README.md` - **you are here**
 
+### Create a new package:
+
+Run `node createPackage.js <name-of-package> <your-email> '<description>'` from the root of this monorepo.
+
+- `<name-of-package>` should be kebab-cased and MUST start with `box-` e.g. `box-base`
+- `<your-email>` should be the email you use for your Github login.
+- `<description>` should list the contents of the package. Make sure you enclose description in quotes, or the script will fail.
+
 ### Install dependencies:
 
 `lerna add <name of package>` to install a [dependency](https://classic.yarnpkg.com/en/docs/dependency-types#toc-dependencies) for EVERY package in this monorepo.
