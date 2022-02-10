@@ -93,6 +93,8 @@ Note that not ALL of the packages in Dev Boxes can be run.
 - `npx jest` to test ALL packages.
 - `npx jest --watch` to watch for changes as you develop within package in this monorepo.
 
+Every package contains a single `<nameOfPackage.test.ts>` file in its root. Place all of your tests in this file. Jest won't look anywhere else for tests.
+
 ### Document:
 
 This repository contains THREE levels of documentation:

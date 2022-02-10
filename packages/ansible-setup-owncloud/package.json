@@ -25,6 +25,7 @@
     "@babel/core": "^7.17.2",
     "@babel/preset-env": "^7.16.11",
     "@babel/preset-typescript": "^7.16.7",
+    "@types/jest": "^27.4.0",
     "@types/node": "^14.14.20",
     "@types/prompts": "^2.0.9",
     "api-spec-converter": "^2.11.2",

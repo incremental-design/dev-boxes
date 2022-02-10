@@ -4,6 +4,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { arrayBuffer } = require('stream/consumers');
 const version = require('./lerna.json').version;
 
 const tsconfig = {
@@ -41,7 +42,7 @@ const tsconfig = {
 
 const package =
 {
-  "main": "dist/quickstart.js",
+  "main": "dist/Quickstart.js",
   "repository": "https://github.com/incremental-design/dev-boxes",
   "license": "MIT",
   "private": false,
@@ -51,6 +52,7 @@ const package =
     "@babel/preset-env": "^7.16.11",
     "@babel/preset-typescript": "^7.16.7",
     "@types/node": "^14.14.20",
+    "@types/jest": "^27.4.0",
     "eslint": "^7.17.0",
     "typescript": "^4.5.5",
   },
@@ -95,6 +97,14 @@ export default ():void => {
 }
 `
 
+const test = `
+// describe('your test here', () => {
+//  it('should do something', async () => {
+//    
+//  }) 
+// })
+`
+
 function stubPackage() {
 
   const author = process.argv[3];
@@ -109,7 +119,12 @@ function stubPackage() {
   fs.writeFileSync(path.resolve(packagePath, 'package.json'), JSON.stringify(p, null, 2), { mode: 0o644 /* same as -rw-r--r-- */ });
   fs.writeFileSync(path.resolve(packagePath, 'README.md'), readme, { mode: 0o644 /* same as -rw-r--r-- */ });
   fs.mkdirSync(path.join(packagePath, 'src'), { mode: 0o755 /* same as drwxr-xr-x */ });
-  fs.writeFileSync(path.resolve(packagePath, 'src/quickstart.ts'), quickstart, { mode: 0o644 /* same as -rw-r--r-- */ });
+  fs.writeFileSync(path.resolve(packagePath, 'src/Quickstart.ts'), quickstart, { mode: 0o644 /* same as -rw-r--r-- */ });
+
+  const testBasename = packageName.toLowerCase().split('-').map(word => (`${word.slice(0, 1).toUpperCase()}${word.slice(1)}`)).join('');
+  const testPath = path.join(packagePath, `${testBasename}.test.ts`)
+
+  fs.writeFileSync(testPath, test, { mode: 0o644 /* same as -rw-r--r-- */ })
 }
 
 stubPackage();
