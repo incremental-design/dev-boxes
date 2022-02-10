@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 /**
  * usage: node createPackage.js <packageName> <author> <description>
  */
@@ -33,7 +35,8 @@ const tsconfig = {
     /* Type Checking */
     "strict": true /* Enable all strict type-checking options. */,
     /* Completeness */
-    "skipLibCheck": true /* Skip type checking all .d.ts files. */
+    "skipLibCheck": true /* Skip type checking all .d.ts files. */,
+    "isolatedModules": true /* see: https://www.typescriptlang.org/docs/handbook/babel-with-typescript.html */
   },
   "include": [
     "src/**/*"
@@ -57,14 +60,13 @@ const package =
     "typescript": "^4.5.5",
   },
   "scripts": {
-    "build": "npx babel --root-mode upward --extensions \".ts\" src --out-dir dist && tsc --emitDeclarationOnly",
+    "build": "npx babel --root-mode upward --extensions \".ts\" src --out-dir dist --source-maps && tsc --emitDeclarationOnly",
   }
 }
 
 const packageName = process.argv[2];
 
-const readme = `
-# ${'`' + packageName + '`'}
+const readme = `# ${'`' + packageName + '`'}
 <!-- 
 Add a banner image and badges
 
@@ -92,9 +94,17 @@ See [${'`' + 'dev-boxes/README.md' + '`'}](../../README.md#contribute-to-dev-box
 `
 
 const quickstart = `
-export default ():void => {
+async function quickstart():Promise<void> {
   // your code here
 }
+export default quickstart;
+`
+
+const runQuickstart =
+  `#!/usr/bin/env node
+  
+const quickstart = require('@incremental.design/${packageName}').default;
+quickstart();
 `
 
 const test = `
@@ -116,10 +126,12 @@ function stubPackage() {
   fs.mkdirSync(packagePath, { mode: 0o755 /* same as drwxr-xr-x */ });
   fs.writeFileSync(path.resolve(packagePath, 'tsconfig.json'), JSON.stringify(tsconfig, null, 2), { mode: 0o644 /* same as -rw-r--r-- */ });
   const p = { ...package, name: `@incremental.design/${packageName}`, version, author, description };
-  fs.writeFileSync(path.resolve(packagePath, 'package.json'), JSON.stringify(p, null, 2), { mode: 0o644 /* same as -rw-r--r-- */ });
+  const bin = { [packageName]: './runQuickstart.js' };
+  fs.writeFileSync(path.resolve(packagePath, 'package.json'), JSON.stringify({ ...p, bin }, null, 2), { mode: 0o644 /* same as -rw-r--r-- */ });
   fs.writeFileSync(path.resolve(packagePath, 'README.md'), readme, { mode: 0o644 /* same as -rw-r--r-- */ });
   fs.mkdirSync(path.join(packagePath, 'src'), { mode: 0o755 /* same as drwxr-xr-x */ });
   fs.writeFileSync(path.resolve(packagePath, 'src/Quickstart.ts'), quickstart, { mode: 0o644 /* same as -rw-r--r-- */ });
+  fs.writeFileSync(path.resolve(packagePath, 'runQuickstart.js'), runQuickstart, { mode: 0o644 /* same as -rw-r--r-- */ });
 
   const testBasename = packageName.toLowerCase().split('-').map(word => (`${word.slice(0, 1).toUpperCase()}${word.slice(1)}`)).join('');
   const testPath = path.join(packagePath, `${testBasename}.test.ts`)

@@ -11,7 +11,6 @@
     "@types/jest": "^27.4.0",
     "@types/node": "^14.14.20",
     "cac": "^6.7.12",
-    "chalk": "^5.0.0",
     "eslint": "^7.17.0",
     "generate-password": "^1.7.0",
     "mock-stdin": "^1.0.0",
@@ -19,10 +18,13 @@
     "typescript": "^4.5.5"
   },
   "scripts": {
-    "build": "npx babel --root-mode upward --extensions \".ts\" src --out-dir dist && tsc --emitDeclarationOnly"
+    "build": "npx babel --root-mode upward --extensions \"[.js,.ts]\" src --out-dir dist --source-maps && tsc --emitDeclarationOnly"
   },
   "name": "@incremental.design/box-base",
   "version": "0.0.0",
   "author": "ajay@incremental.design",
-  "description": "Alpine linux with latest node. Starting point for every other package in the dev-boxes monorepo"
+  "description": "Alpine linux with latest node. Starting point for every other package in the dev-boxes monorepo",
+  "bin": {
+    "box-base": "./runQuickstart.js"
+  }
 }
