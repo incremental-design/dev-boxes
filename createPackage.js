@@ -105,7 +105,7 @@ function stubPackage() {
   const packagePath = path.resolve(__dirname, 'packages', process.argv[2])
   fs.mkdirSync(packagePath, { mode: 0o755 /* same as drwxr-xr-x */ });
   fs.writeFileSync(path.resolve(packagePath, 'tsconfig.json'), JSON.stringify(tsconfig, null, 2), { mode: 0o644 /* same as -rw-r--r-- */ });
-  const p = { ...package, name: `@incremental.design/packageName`, version, author, description };
+  const p = { ...package, name: `@incremental.design/${packageName}`, version, author, description };
   fs.writeFileSync(path.resolve(packagePath, 'package.json'), JSON.stringify(p, null, 2), { mode: 0o644 /* same as -rw-r--r-- */ });
   fs.writeFileSync(path.resolve(packagePath, 'README.md'), readme, { mode: 0o644 /* same as -rw-r--r-- */ });
   fs.mkdirSync(path.join(packagePath, 'src'), { mode: 0o755 /* same as drwxr-xr-x */ });
