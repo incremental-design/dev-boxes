@@ -61,6 +61,9 @@ const package =
   },
   "scripts": {
     "build": "npx babel --root-mode upward --extensions \".ts\" src --out-dir dist --source-maps && tsc --emitDeclarationOnly",
+  },
+  "dependencies": {
+    "@incremental-design/box-base": "latest",
   }
 }
 
@@ -102,7 +105,7 @@ export default quickstart;
 
 const runQuickstart =
   `#!/usr/bin/env node
-  
+
 const quickstart = require('@incremental.design/${packageName}').default;
 quickstart();
 `
