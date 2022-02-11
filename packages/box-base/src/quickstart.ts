@@ -1,6 +1,7 @@
 import passgen from 'generate-password';
 import cac from 'cac';
 import prompts from 'prompts';
+import keytar from 'keytar';
 
 function quickstart(): void {
   // your code here
@@ -73,6 +74,29 @@ export async function getAnswersFromCLI(
   if (nonInteractive) return flags;
   const promptAnswers = await prompts(questionsToAsk);
   return { ...promptAnswers, ...flags };
+}
+
+/**
+ * addToKeychain adds a password to the keychain.
+ *
+ * @param service - the service that the account is associated with.
+ * @param account - the account that the password unlocks.
+ * @param password - the password to add to the keychain.
+ *
+ */
+export async function addToKeychain(
+  service: string,
+  account: string,
+  password: string
+) {
+  return keytar.setPassword(service, account, password);
+}
+
+export async function retrieveFromKeychain(
+  service: string,
+  account: string
+): Promise<string | null> {
+  return keytar.getPassword(service, account);
 }
 
 export default quickstart;

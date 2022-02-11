@@ -1,3 +1,5 @@
 #!/usr/bin/env node
 
-const bb = require('@incremental.design/box-base').default;
+const quickstart = require('@incremental.design/box-base').default;
+
+quickstart();

@@ -26,5 +26,8 @@
   "description": "Alpine linux with latest node. Starting point for every other package in the dev-boxes monorepo",
   "bin": {
     "box-base": "./runQuickstart.js"
+  },
+  "dependencies": {
+    "keytar": "^7.8.0"
   }
 }
