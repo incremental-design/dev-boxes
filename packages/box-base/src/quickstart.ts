@@ -2,24 +2,74 @@ import passgen from 'generate-password';
 import cac from 'cac';
 import prompts, { PromptObject } from 'prompts';
 import keytar from 'keytar';
-import { text } from 'stream/consumers';
 import { spawn } from 'child_process';
+import { Docker } from 'node-docker-api';
+import { stat } from 'fs/promises';
+import { Stream } from 'stream';
 
-function quickstart(): void {
-  if (!checkDocker())
-    throw new Error(
-      'Docker is not installed. Cannot start box-base without it.'
-    );
+/**
+ *
+ * @param dockerInstance - an instance of the {@link Docker} class. If an instance isn't provided, then quickstart will create one for you. The idea is that you can chain quickstarts together, sharing the same docker instance among them.
+ *
+ * @returns dockerInstance - the same instance of the {@link Docker} class that was passed in, or if no instance was passed in, a new instance.
+ */
+async function quickstart(dockerInstance?: Docker): Promise<Docker> {
+  const dockerReady = await checkDocker();
+  if (!dockerReady)
+    throw new Error('Docker is either not installed or not running');
   // docker run node:17-alpine node -v
-  console.log('hello world');
+  const di =
+    dockerInstance || new Docker({ socketPath: '/var/run/docker.sock' });
+  const logStream = (await di.image.create(
+    {},
+    { fromImage: 'node', tag: 'current-alpine' }
+  )) as Stream;
+  await new Promise((resolve, reject) => {
+    logStream.on('data', (d: Buffer) => {
+      const match = d
+        .toString()
+        .trim()
+        .match(/{"status":".+?"/);
+      const status = match ? console.log(match[0].slice(11, -1)) : false;
+      if (status) console.log(status);
+    });
+    logStream.on('end', resolve);
+    logStream.on('error', reject);
+  });
+  const imageStatus = await di.image.get('node:current-alpine').status();
+  console.log(imageStatus);
+  // const boxBase = await di.container.create({
+  //   Image: 'node',
+  //   name: 'box-base',
+  // });
+  // await boxBase.start();
+  // await boxBase.stop();
+  // await boxBase.restart();
+  // await boxBase.delete({ force: true });
+  return di;
 }
 
 export async function checkDocker() {
-  return new Promise((resolve) => {
+  const isInstalled = await new Promise((resolve) => {
     spawn('which', ['docker']).on('close', (code) => {
       resolve(code === 0);
     });
   });
+  if (!isInstalled) {
+    console.warn('Docker is not installed. Cannot start box-base without it.');
+    return false;
+  }
+  try {
+    await stat('/var/run/docker.sock');
+  } catch (error: any) {
+    if (error.errno === -2) {
+      console.warn(
+        'docker engine is not running. Check to see if docker desktop is running.'
+      );
+      return false;
+    } else throw error;
+  }
+  return true;
 }
 
 /**

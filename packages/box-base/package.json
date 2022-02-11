@@ -18,7 +18,7 @@
     "typescript": "^4.5.5"
   },
   "scripts": {
-    "build": "npx babel --root-mode upward --extensions \"[.js,.ts]\" src --out-dir dist --source-maps && tsc --emitDeclarationOnly"
+    "build": "npx babel --root-mode upward --extensions \".ts\" src --out-dir dist --source-maps && tsc --emitDeclarationOnly"
   },
   "name": "@incremental.design/box-base",
   "version": "0.0.0",
@@ -28,6 +28,7 @@
     "box-base": "./runQuickstart.js"
   },
   "dependencies": {
-    "keytar": "^7.8.0"
+    "keytar": "^7.8.0",
+    "node-docker-api": "^1.1.22"
   }
 }

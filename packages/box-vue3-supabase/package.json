@@ -24,6 +24,7 @@
     "box-vue3-supabase": "./runQuickstart.js"
   },
   "dependencies": {
-    "@incremental.design/box-base": "^0.0.0"
+    "@incremental.design/box-base": "^0.0.0",
+    "node-docker-api": "^1.1.22"
   }
 }
