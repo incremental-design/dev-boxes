@@ -5,7 +5,9 @@ import keytar from 'keytar';
 import { spawn } from 'child_process';
 import { Docker } from 'node-docker-api';
 import { stat } from 'fs/promises';
-import { Stream } from 'stream';
+import { pipeline, Readable, Transform } from 'stream';
+import { stdin, stdout } from 'process';
+import * as readline from 'readline';
 
 /**
  *
@@ -23,19 +25,10 @@ async function quickstart(dockerInstance?: Docker): Promise<Docker> {
   const logStream = (await di.image.create(
     {},
     { fromImage: 'node', tag: 'current-alpine' }
-  )) as Stream;
-  await new Promise((resolve, reject) => {
-    logStream.on('data', (d: Buffer) => {
-      const match = d
-        .toString()
-        .trim()
-        .match(/{"status":".+?"/);
-      const status = match ? console.log(match[0].slice(11, -1)) : false;
-      if (status) console.log(status);
-    });
-    logStream.on('end', resolve);
-    logStream.on('error', reject);
-  });
+  )) as Readable;
+
+  await printProgress(logStream);
+
   const imageStatus = await di.image.get('node:current-alpine').status();
   console.log(imageStatus);
   // const boxBase = await di.container.create({
@@ -47,6 +40,29 @@ async function quickstart(dockerInstance?: Docker): Promise<Docker> {
   // await boxBase.restart();
   // await boxBase.delete({ force: true });
   return di;
+}
+
+export async function printProgress(r: Readable) {
+  const clear = async () => {
+    await new Promise<void>((resolve) => {
+      readline.clearScreenDown(stdout, resolve);
+    });
+    await new Promise<void>((resolve) => {
+      readline.cursorTo(stdout, 0, 0, resolve);
+    });
+  };
+
+  for await (const chunk of r) {
+    await clear();
+    const s = chunk.toString('utf8');
+    let j = '';
+    try {
+      j = JSON.parse(s);
+      stdout.write(JSON.stringify(j, null, 2));
+    } catch (e) {
+      stdout.write(s);
+    }
+  } // todo: handle stdout backed up
 }
 
 /**
