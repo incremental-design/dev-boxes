@@ -9,6 +9,9 @@ const path = require('path');
 const { arrayBuffer } = require('stream/consumers');
 const version = require('./lerna.json').version;
 
+/**
+ * the contents of this const are written to `packages/<package-name>/tsconfig.json`
+ */
 const tsconfig = {
   "compilerOptions": {
     "target": "esnext" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
@@ -43,6 +46,9 @@ const tsconfig = {
   ]
 }
 
+/**
+ * the contents of this const are written to `packages/<package-name>/package.json`
+ */
 const package =
 {
   "main": "dist/Quickstart.js",
@@ -54,7 +60,7 @@ const package =
     "@babel/core": "^7.17.2",
     "@babel/preset-env": "^7.16.11",
     "@babel/preset-typescript": "^7.16.7",
-    "@types/node": "^14.14.20",
+    "@types/node": "^17.0.18",
     "@types/jest": "^27.4.0",
     "eslint": "^7.17.0",
     "typescript": "^4.5.5",
@@ -68,8 +74,12 @@ const package =
   }
 }
 
-const packageName = process.argv[2];
+const packageName = process.argv[2]; /* i.e. ./createPackage.js <package-name> */
 
+
+/**
+ * the contents of this const are written to `packages/<package-name>/README.md`
+ */
 const readme = `# ${'`' + packageName + '`'}
 <!-- 
 Add a banner image and badges
@@ -96,7 +106,9 @@ asciicast, video or GIF of adding to your project and using it
 ## Contribute to ${'`' + packageName + '`'}:
 See [${'`' + 'dev-boxes/README.md' + '`'}](../../README.md#contribute-to-dev-boxes).
 `
-
+/**
+ * the contents of this const are written to `packages/<package-name>/src/quickstart.ts`
+ */
 const quickstart = `import { Docker } from 'node-docker-api';
 /**
  * 
@@ -112,6 +124,9 @@ async function quickstart(dockerInstance?: Docker):Promise<Docker> {
 export default quickstart;
 `
 
+/**
+ * the contents of this const are written to `packages/<package-name>/runQuickstart.js`
+ */
 const runQuickstart =
   `#!/usr/bin/env node
 
@@ -119,6 +134,9 @@ const quickstart = require('@incremental.design/${packageName}').default;
 quickstart();
 `
 
+/**
+ * the contents of this const are written to `packages/<package-name>/<packageName>.test.ts`
+ */
 const test = `
 // describe('your test here', () => {
 //  it('should do something', async () => {

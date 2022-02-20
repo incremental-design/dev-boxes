@@ -42,6 +42,8 @@ Lerna uses yarn workspaces to link packages together. You have install [`yarn`](
 
 All packages use [docker](https://www.docker.com/products/docker-desktop), [QEMU](https://formulae.brew.sh/formula/qemu) or some combination of both to build and run containrs and VMs. Install both before you get started.
 
+Dev Boxes requires node v17 or higher. You can check your node version with `node -v`. If the version number is <17, the executables in this monorepo will probably fail.
+
 ### Setup:
 
 <!-- asciicast or GIF of install prerequisites -->
