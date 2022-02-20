@@ -14,7 +14,7 @@ import { Stream } from 'stream';
  * @returns dockerInstance - the same instance of the {@link Docker} class that was passed in, or if no instance was passed in, a new instance.
  */
 async function quickstart(dockerInstance?: Docker): Promise<Docker> {
-  const dockerReady = await checkDocker();
+  const dockerReady = await isDockerReady();
   if (!dockerReady)
     throw new Error('Docker is either not installed or not running');
   // docker run node:17-alpine node -v
@@ -49,25 +49,47 @@ async function quickstart(dockerInstance?: Docker): Promise<Docker> {
   return di;
 }
 
-export async function checkDocker() {
+/**
+ * checks if docker is installed and running. Errors if not.
+ */
+export async function checkDocker(): Promise<void> {
   const isInstalled = await new Promise((resolve) => {
     spawn('which', ['docker']).on('close', (code) => {
       resolve(code === 0);
     });
   });
-  if (!isInstalled) {
-    console.warn('Docker is not installed. Cannot start box-base without it.');
-    return false;
-  }
+  if (!isInstalled) throw new Error('Docker is not installed.');
   try {
-    await stat('/var/run/docker.sock');
+    await stat('/var/run/docker.sock'); // todo: check if this is the right place to check for docker on win and linux
   } catch (error: any) {
-    if (error.errno === -2) {
-      console.warn(
-        'docker engine is not running. Check to see if docker desktop is running.'
-      );
-      return false;
-    } else throw error;
+    switch (error.errno) {
+      case -2:
+        throw new Error(
+          'docker engine is not running. Check to see if docker desktop is running.'
+        );
+      /* assume that docker engine ungracefully quit */
+      default:
+        throw new Error(
+          `docker engine was ungracefully stopped. Although the '/var/run/docker.sock' file exists, there is nothing listening to the socket. This always means that docker engine was stopped before it had a chance to close the socket.`
+        );
+    }
+  }
+}
+
+/**
+ * @returns true if docker is installed and running, false otherwise.
+ *
+ * @remarks
+ *
+ * use this function if you don't want to handle a 'docker not installed' or 'docker not running' error.
+ *
+ */
+export async function isDockerReady() {
+  try {
+    checkDocker();
+  } catch (error) {
+    console.warn(error);
+    return false;
   }
   return true;
 }
