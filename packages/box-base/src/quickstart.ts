@@ -5,10 +5,10 @@ import keytar from 'keytar';
 import { spawn } from 'child_process';
 import { Docker } from 'node-docker-api';
 import { stat } from 'fs/promises';
-import { pipeline, Readable, Transform } from 'stream';
-import { stdin, stdout } from 'process';
+import { Readable } from 'stream';
+import { stdout } from 'process';
 import * as readline from 'readline';
-import image from 'node-docker-api/lib/image';
+import Image from 'node-docker-api/lib/image';
 
 /**
  *
@@ -23,16 +23,13 @@ async function quickstart(dockerInstance?: Docker): Promise<Docker> {
   // docker run node:17-alpine node -v
   const di =
     dockerInstance || new Docker({ socketPath: '/var/run/docker.sock' });
-  const logStream = (await di.image.create(
-    {},
-    { fromImage: 'node', tag: 'current-alpine' }
-  )) as Readable;
+  const i = await getImage('node', 'current-alpine', di);
 
-  await printProgress(logStream);
+  // const imageStatus = await di.image.get('node:current-alpine').status();
 
-  const imageStatus = await di.image.get('node:current-alpine').status();
-
-  await print(JSON.stringify(imageStatus));
+  await print(
+    JSON.stringify(i)
+  ); /* this is inefficient because we are stringifying JSON, then parsing it, then stringifying it again */
   // const boxBase = await di.container.create({
   //   Image: 'node',
   //   name: 'box-base',
@@ -44,6 +41,32 @@ async function quickstart(dockerInstance?: Docker): Promise<Docker> {
   return di;
 }
 
+/**
+ * get an image, downloading it from docker hub if needed.
+ * @param name - the name of the image to download (e.g. 'node')
+ * @param tag - the tag of the image to download (e.g. 'current-alpine')
+ * @param dockerInstance - the instance of the {@link Docker} class to use.
+ */
+export async function getImage(
+  name: string,
+  tag: string,
+  dockerInstance: Docker
+) {
+  const logStream = (await dockerInstance.image.create(
+    {},
+    { fromImage: name, tag: tag }
+  )) as Readable;
+
+  await printProgress(logStream);
+
+  return dockerInstance.image.get(`${name}:${tag}`);
+}
+
+/**
+ * print each line of a readable stream to stdout, clearing the previous line before printing the next line.
+ *
+ * @param r - a readable stream that can be encoded as utf8 text.
+ */
 export async function printProgress(r: Readable) {
   const clear = async () => {
     await new Promise<void>((resolve) => {
@@ -63,6 +86,12 @@ export async function printProgress(r: Readable) {
   await clear();
 }
 
+/**
+ * print a string or line of a readable stream to stdout, without clearing the previous line.
+ *
+ * @param r - a readable or string to print.
+ *
+ */
 export async function print(r: Readable | string) {
   if (typeof r === 'string') {
     stdout.write(prettyPrintJSON(r));
