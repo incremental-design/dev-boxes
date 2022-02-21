@@ -103,9 +103,10 @@ export async function printProgress(r: Readable) {
   for await (const chunk of r) {
     await clear();
     const s = chunk.toString('utf8');
-    stdout.write(prettyPrintJSON(s));
-  } // todo: handle stdout backed up
-  stdout.write('\n\n\n');
+    await new Promise((resolve) => {
+      stdout.write(`\n${prettyPrintJSON(s)}\n`, resolve);
+    });
+  }
   await clear();
 }
 
@@ -117,10 +118,12 @@ export async function printProgress(r: Readable) {
  */
 export async function print(r: Readable | string) {
   if (typeof r === 'string') {
-    stdout.write(prettyPrintJSON(r));
+    stdout.write(`\n${prettyPrintJSON(r)}\n`);
   } else {
     for await (const chunk of r) {
-      stdout.write(prettyPrintJSON(chunk.toString('utf8')));
+      await new Promise((resolve) => {
+        stdout.write(`\n${prettyPrintJSON(chunk.toString('utf8'))}\n`, resolve);
+      });
     }
   }
 }
@@ -130,7 +133,7 @@ function prettyPrintJSON(JSONstring: string) {
     const j = JSON.parse(JSONstring);
     return JSON.stringify(j, null, 2);
   } catch (e) {
-    return JSONstring;
+    return `\n\nfailed to parse JSON for:\n\n${JSONstring}\n\n`;
   }
 }
 
