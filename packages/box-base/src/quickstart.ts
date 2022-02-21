@@ -8,6 +8,7 @@ import { stat } from 'fs/promises';
 import { pipeline, Readable, Transform } from 'stream';
 import { stdin, stdout } from 'process';
 import * as readline from 'readline';
+import image from 'node-docker-api/lib/image';
 
 /**
  *
@@ -30,7 +31,8 @@ async function quickstart(dockerInstance?: Docker): Promise<Docker> {
   await printProgress(logStream);
 
   const imageStatus = await di.image.get('node:current-alpine').status();
-  console.log(imageStatus);
+
+  await print(JSON.stringify(imageStatus));
   // const boxBase = await di.container.create({
   //   Image: 'node',
   //   name: 'box-base',
@@ -55,14 +57,29 @@ export async function printProgress(r: Readable) {
   for await (const chunk of r) {
     await clear();
     const s = chunk.toString('utf8');
-    let j = '';
-    try {
-      j = JSON.parse(s);
-      stdout.write(JSON.stringify(j, null, 2));
-    } catch (e) {
-      stdout.write(s);
-    }
+    stdout.write(prettyPrintJSON(s));
   } // todo: handle stdout backed up
+  stdout.write('\n\n\n');
+  await clear();
+}
+
+export async function print(r: Readable | string) {
+  if (typeof r === 'string') {
+    stdout.write(prettyPrintJSON(r));
+  } else {
+    for await (const chunk of r) {
+      stdout.write(prettyPrintJSON(chunk.toString('utf8')));
+    }
+  }
+}
+
+function prettyPrintJSON(JSONstring: string) {
+  try {
+    const j = JSON.parse(JSONstring);
+    return JSON.stringify(j, null, 2);
+  } catch (e) {
+    return JSONstring;
+  }
 }
 
 /**
