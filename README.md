@@ -50,6 +50,8 @@ All packages use [dockerode](https://www.npmjs.com/package/dockerode) to communi
 
 2. `cmake` is installed. `cmake` is a makefile interpreter. It helps the xcode LLVM compiler build `cpu-features`. If you have installed [homebrew](https://brew.sh), you can [`brew install cmake`](https://stackoverflow.com/questions/59825564/how-to-run-cmake-in-mac).
 
+3. If you are running this project on an M1 Mac, then `cpu-features` will still fail after you do the previous two steps. As of 2/21/22 it is unclear if there is a fix that doesn't involve dark magic. But don't worry, you don't actually NEED `cpu-features` to use this project. You will just have to ignore the error it generates.
+
 ### Setup:
 
 <!-- asciicast or GIF of install prerequisites -->

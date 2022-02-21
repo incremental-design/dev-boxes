@@ -5,7 +5,7 @@ import keytar from 'keytar';
 import { spawn } from 'child_process';
 import { stat } from 'fs/promises';
 import { PassThrough, Readable } from 'stream';
-import { stdout } from 'process';
+import { stdin, stdout } from 'process';
 import * as readline from 'readline';
 import Docker from 'dockerode';
 import { Socket } from 'net';
@@ -52,35 +52,17 @@ export async function getImage(
   tag: string,
   dockerInstance: Docker
 ) {
-  // const logStream = (await dockerInstance.image.create(
-  //   {},
-  //   { fromImage: name, tag: tag }
-  // )) as Readable;
-
-  // const I = dockerInstance.pull(
-  //   `${name}:${tag}`,
-  //   {},
-  //   (err: any, stream: Readable) => {
-  //     console.log('the stream is', stream);
-  //     // await printProgress(stream);
-  //   }
-  // );
-
-  // const logStream = (await dockerInstance.pull(`${name}:${tag}`)) as Readable;
-
-  // console.log('the image is', I);
-
-  // console.log(I);
-
-  // await printProgress(logStream);
-
-  // return dockerInstance.image.get(`${name}:${tag}`);
   const socket = await new Promise<Socket>((resolve, reject) => {
     dockerInstance.pull(`${name}:${tag}`, (err: any, s: Socket) => {
       resolve(s);
     });
   });
-  await printProgress(socket);
+  await printProgress(
+    socket
+  ); /* assume that socket is correctly sending null byte at end of stream. */
+  socket.once('end', () => {
+    console.log('end of transmission');
+  });
 
   // return result;
 }
@@ -91,23 +73,37 @@ export async function getImage(
  * @param r - a readable stream that can be encoded as utf8 text.
  */
 export async function printProgress(r: Readable) {
-  const clear = async () => {
+  const clear = async (clearFrom: number) => {
+    await new Promise<void>((resolve) => {
+      readline.cursorTo(stdout, 0, clearFrom, resolve);
+    });
     await new Promise<void>((resolve) => {
       readline.clearScreenDown(stdout, resolve);
     });
-    await new Promise<void>((resolve) => {
-      readline.cursorTo(stdout, 0, 0, resolve);
-    });
   };
-
+  let prevCleared = 0;
+  const isTTY = stdout.isTTY;
   for await (const chunk of r) {
-    await clear();
-    const s = chunk.toString('utf8');
-    await new Promise((resolve) => {
-      stdout.write(`\n${prettyPrintJSON(s)}\n`, resolve);
-    });
+    if (isTTY) {
+      const width = stdout.columns;
+      const height = stdout.rows;
+      const s = prettyPrintJSON(chunk.toString('utf8'), width);
+      const lines = s.split('\n');
+      const toClear = lines.length;
+      const clearFrom =
+        height - (toClear > prevCleared ? toClear : prevCleared);
+      await clear(clearFrom);
+      await new Promise((resolve) => {
+        readline.cursorTo(stdout, 0, clearFrom, () => {
+          prevCleared = toClear;
+          stdout.write(s, resolve);
+        });
+      });
+    } else {
+      print(chunk.toString('utf8'));
+    }
   }
-  await clear();
+  await clear(prevCleared);
 }
 
 /**
@@ -128,12 +124,32 @@ export async function print(r: Readable | string) {
   }
 }
 
-function prettyPrintJSON(JSONstring: string) {
+function prettyPrintJSON(JSONstring: string, truncateAt?: number) {
+  if (truncateAt && truncateAt < 4) throw new Error('truncateAt must be >= 4');
   try {
     const j = JSON.parse(JSONstring);
-    return JSON.stringify(j, null, 2);
+    const toPrint = JSON.stringify(j, null, 2);
+    if (truncateAt)
+      return toPrint
+        .split('\n')
+        .map((line) => {
+          if (line.length > truncateAt) {
+            return line.slice(0, truncateAt - 3) + '...';
+          }
+          return line;
+        })
+        .join('\n');
+    return toPrint;
   } catch (e) {
-    return `\n\nfailed to parse JSON for:\n\n${JSONstring}\n\n`;
+    return `\n\nfailed to parse JSON for:\n\n${JSONstring}\n\n`
+      .split('\n')
+      .map((line) => {
+        if (truncateAt && line.length > truncateAt) {
+          return line.slice(0, truncateAt - 3) + '...';
+        }
+        return line;
+      })
+      .join('\n');
   }
 }
 
