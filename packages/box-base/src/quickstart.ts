@@ -25,6 +25,8 @@ async function quickstart(dockerInstance?: Docker): Promise<Docker> {
     dockerInstance || new Docker({ socketPath: '/var/run/docker.sock' });
   const i = await getImage('node', 'current-alpine', di);
 
+  console.log(i);
+
   // const imageStatus = await di.image.get('node:current-alpine').status();
 
   // await print(
@@ -64,7 +66,7 @@ export async function getImage(
     console.log('end of transmission');
   });
 
-  // return result;
+  return dockerInstance.getImage(`${name}:${tag}`);
 }
 
 /**
