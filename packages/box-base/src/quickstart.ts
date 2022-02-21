@@ -3,12 +3,12 @@ import cac from 'cac';
 import prompts, { PromptObject } from 'prompts';
 import keytar from 'keytar';
 import { spawn } from 'child_process';
-import { Docker } from 'node-docker-api';
 import { stat } from 'fs/promises';
-import { Readable } from 'stream';
+import { PassThrough, Readable } from 'stream';
 import { stdout } from 'process';
 import * as readline from 'readline';
-import Image from 'node-docker-api/lib/image';
+import Docker from 'dockerode';
+import { Socket } from 'net';
 
 /**
  *
@@ -27,9 +27,9 @@ async function quickstart(dockerInstance?: Docker): Promise<Docker> {
 
   // const imageStatus = await di.image.get('node:current-alpine').status();
 
-  await print(
-    JSON.stringify(i)
-  ); /* this is inefficient because we are stringifying JSON, then parsing it, then stringifying it again */
+  // await print(
+  //   JSON.stringify(i)
+  // ); /* this is inefficient because we are stringifying JSON, then parsing it, then stringifying it again */
   // const boxBase = await di.container.create({
   //   Image: 'node',
   //   name: 'box-base',
@@ -52,14 +52,37 @@ export async function getImage(
   tag: string,
   dockerInstance: Docker
 ) {
-  const logStream = (await dockerInstance.image.create(
-    {},
-    { fromImage: name, tag: tag }
-  )) as Readable;
+  // const logStream = (await dockerInstance.image.create(
+  //   {},
+  //   { fromImage: name, tag: tag }
+  // )) as Readable;
 
-  await printProgress(logStream);
+  // const I = dockerInstance.pull(
+  //   `${name}:${tag}`,
+  //   {},
+  //   (err: any, stream: Readable) => {
+  //     console.log('the stream is', stream);
+  //     // await printProgress(stream);
+  //   }
+  // );
 
-  return dockerInstance.image.get(`${name}:${tag}`);
+  // const logStream = (await dockerInstance.pull(`${name}:${tag}`)) as Readable;
+
+  // console.log('the image is', I);
+
+  // console.log(I);
+
+  // await printProgress(logStream);
+
+  // return dockerInstance.image.get(`${name}:${tag}`);
+  const socket = await new Promise<Socket>((resolve, reject) => {
+    dockerInstance.pull(`${name}:${tag}`, (err: any, s: Socket) => {
+      resolve(s);
+    });
+  });
+  await printProgress(socket);
+
+  // return result;
 }
 
 /**
@@ -112,7 +135,24 @@ function prettyPrintJSON(JSONstring: string) {
 }
 
 /**
- * checks if docker is installed and running. Errors if not.
+ * @returns true if docker desktop is installed and running, false otherwise.
+ *
+ * @remarks
+ * use this function if you don't want to handle a 'docker not installed' or 'docker not running' error.
+ *
+ */
+export async function isDockerReady() {
+  try {
+    checkDocker();
+  } catch (error) {
+    console.warn(error);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * checks if docker desktop is installed and running. Errors if not.
  */
 export async function checkDocker(): Promise<void> {
   const isInstalled = await new Promise((resolve) => {
@@ -136,24 +176,6 @@ export async function checkDocker(): Promise<void> {
         );
     }
   }
-}
-
-/**
- * @returns true if docker is installed and running, false otherwise.
- *
- * @remarks
- *
- * use this function if you don't want to handle a 'docker not installed' or 'docker not running' error.
- *
- */
-export async function isDockerReady() {
-  try {
-    checkDocker();
-  } catch (error) {
-    console.warn(error);
-    return false;
-  }
-  return true;
 }
 
 /**

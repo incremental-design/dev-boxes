@@ -40,9 +40,15 @@ Lerna uses yarn workspaces to link packages together. You have install [`yarn`](
 
 <!-- at some point link over to incremental.design article on lerna bootstrap -->
 
-All packages use [docker](https://www.docker.com/products/docker-desktop), [QEMU](https://formulae.brew.sh/formula/qemu) or some combination of both to build and run containrs and VMs. Install both before you get started.
+All packages use [docker](https://www.docker.com/products/docker-desktop), [QEMU](https://formulae.brew.sh/formula/qemu) or some combination of both to build and run containers and VMs. Install both before you get started.
 
 Dev Boxes requires node v17 or higher. You can check your node version with `node -v`. If the version number is <17, the executables in this monorepo will probably fail.
+
+All packages use [dockerode](https://www.npmjs.com/package/dockerode) to communicate with the docker API. The docker API is a REST API that runs on `/var/run/docker.sock`. When you start docker desktop, it starts the API. For dockerode to work: docker must be running. Make sure you start docker desktop. If you are running this code on a mac, you ALSO have to make sure that:
+
+1. the xcode command line utilities are installed. That's because dockerode installs [`cpu-features`](https://www.npmjs.com/package/cpu-features), which is a native module that has to be built with the xcode LLVM compiler every time you `lerna bootstrap`. Download the Xcode command line tools [here](https://developer.apple.com/download/all/?q=command%20line%20tools), or run `xcode-select -install` to download and install them.
+
+2. `cmake` is installed. `cmake` is a makefile interpreter. It helps the xcode LLVM compiler build `cpu-features`. If you have installed [homebrew](https://brew.sh), you can [`brew install cmake`](https://stackoverflow.com/questions/59825564/how-to-run-cmake-in-mac).
 
 ### Setup:
 

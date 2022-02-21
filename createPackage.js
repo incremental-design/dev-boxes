@@ -64,13 +64,15 @@ const package =
     "@types/jest": "^27.4.0",
     "eslint": "^7.17.0",
     "typescript": "^4.5.5",
+    "@types/dockerode": "^3.3.3",
   },
   "scripts": {
     "build": "npx babel --root-mode upward --extensions \".ts\" src --out-dir dist --source-maps && tsc --emitDeclarationOnly",
   },
   "dependencies": {
     "@incremental-design/box-base": "latest",
-    "node-docker-api": "^1.1.22",
+    "dockerode": "^3.3.1",
+
   }
 }
 
