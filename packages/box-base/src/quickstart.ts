@@ -9,10 +9,9 @@ import { stdin, stdout } from 'process';
 import * as readline from 'readline';
 import Docker from 'dockerode';
 import { Socket } from 'net';
-import { createReadStream, readFileSync, readSync } from 'fs';
+import { readFileSync } from 'fs';
 import { parse, resolve, sep } from 'path';
 import { parse as parseDockerfile } from 'docker-file-parser';
-import 'picomatch'; /* we have to import the ENTIRE picomatch and stick it in the module global namespace so that fdir can use it */
 import { PicomatchOptions, isMatch } from 'picomatch';
 import { fdir } from 'fdir';
 
@@ -149,7 +148,10 @@ export async function buildFromDockerfile(
   );
 
   await printProgress(Readable.from(progress));
-  console.log(src);
+
+  const i = imageName || '';
+
+  return dockerInstance.getImage();
 }
 
 /**
@@ -215,6 +217,8 @@ async function deglobify(
  * @param tag - the tag of the image to download (e.g. 'current-alpine')
  * @param dockerInstance - the instance of the {@link Docker} class to use.
  *
+ * @returns a promise to get the {@link Docker.Image } that was just downloaded.
+ *
  * @remarks
  * this function wraps {@link Docker.image.get}
  */
@@ -222,7 +226,7 @@ export async function getImage(
   name: string,
   tag: string,
   dockerInstance: Docker
-) {
+): Promise<Docker.Image> {
   const socket = await new Promise<Socket>((resolve, reject) => {
     dockerInstance.pull(`${name}:${tag}`, (err: any, s: Socket) => {
       resolve(s);
