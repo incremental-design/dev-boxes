@@ -9,6 +9,12 @@ import { stdin, stdout } from 'process';
 import * as readline from 'readline';
 import Docker from 'dockerode';
 import { Socket } from 'net';
+import { createReadStream, readFileSync, readSync } from 'fs';
+import { parse, resolve, sep } from 'path';
+import { parse as parseDockerfile } from 'docker-file-parser';
+import 'picomatch'; /* we have to import the ENTIRE picomatch and stick it in the module global namespace so that fdir can use it */
+import { PicomatchOptions, isMatch } from 'picomatch';
+import { fdir } from 'fdir';
 
 /**
  *
@@ -23,9 +29,13 @@ async function quickstart(dockerInstance?: Docker): Promise<Docker> {
   // docker run node:17-alpine node -v
   const di =
     dockerInstance || new Docker({ socketPath: '/var/run/docker.sock' });
-  const i = await getImage('node', 'current-alpine', di);
+  // const i = await getImage('node', 'current-alpine', di);
 
-  console.log(i);
+  const i = await buildFromDockerfile(
+    resolve(__dirname, '../Dockerfile'),
+    di,
+    'my-fun-image'
+  );
 
   // const imageStatus = await di.image.get('node:current-alpine').status();
 
@@ -44,10 +54,169 @@ async function quickstart(dockerInstance?: Docker): Promise<Docker> {
 }
 
 /**
- * get an image, downloading it from docker hub if needed.
+ *
+ * @param pathToDockerfile - the ABSOLUTE PATH to the dockerfile from which to build the image.
+ * @param dockerInstance - the instance of the {@link Docker} class to use.
+ * @param imageName - the name of the image to build. This name must be:
+ * - between 2 and 255 characters long
+ * - contain only lowercase letters, numbers, hypens and underscores
+ *
+ * @remarks
+ * this function assumes that everything file referenced within the dockerfile is in the same directory as the dockerfile itself, or in a subdirectory of the dockerfile's directory. It WILL break if this isn't the case. In docker parlance, the dockerfile is the "context" of the image.
+ *
+ *
+ * @see https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#understand-build-context
+ *
+ */
+export async function buildFromDockerfile(
+  pathToDockerfile: string,
+  dockerInstance: Docker,
+  imageName?: string
+) {
+  const { root } = parse(pathToDockerfile);
+  if (root === '') throw new Error('dockerfile must be an absolute path');
+  const abs = resolve(sep, ...pathToDockerfile.split(sep).slice(1));
+  const { dir, base } = parse(abs);
+  const context = dir;
+  const srcGlobs = [base];
+
+  if (imageName && imageName.match(/[^a-z0-9-_]/))
+    throw new Error(
+      'image name must be lowercase alphanumeric with dashes and underscores. Received ' +
+        imageName
+    );
+  if (imageName && imageName.length > 255)
+    throw new Error(
+      'image name must be 255 characters or less. Received ' +
+        imageName +
+        ' which is ' +
+        imageName.length +
+        ' characters long.'
+    );
+
+  const grabSourceFiles = async () => {
+    // todo: support git repo as context. see: https://docs.docker.com/engine/reference/builder/#usage
+    const commands = parseDockerfile(readFileSync(abs, 'utf8'));
+    const addCopy = commands.filter(
+      (command) => command.name === 'ADD' || command.name === 'COPY'
+    );
+    const pushIfNotURL = (s: string) => {
+      if (!s.match(/(http|https|ftp|smb):\/\//)) srcGlobs.push(s);
+    };
+    addCopy.forEach((command) => {
+      const args =
+        command.args as Array<string>; /* according to https://github.com/joyent/node-docker-file-parser/blob/7605b2df63fe7342efb03ba16acd878d570d39fd/parser.js#L267 the args for a `COPY` or an `ADD` will always be an array of arguments ... unfortunately, this library does not handle globbing for us */
+      switch (args.length) {
+        case 0:
+          throw new Error(
+            `${command.name} command must have at least 2 arguments. Received no arguments.`
+          );
+        case 1:
+          throw new Error(
+            `${command.name} command must have at least 2 arguments. Only received '${args[0]}'.`
+          );
+        case 2:
+          if (args[0].startsWith('--chown'))
+            throw new Error(`${command.name} command must have a destination.`);
+          pushIfNotURL(args[0]);
+        default:
+          const sources = args[0].startsWith('--chown')
+            ? args.slice(1, -1)
+            : args.slice(0, -1); /* the last arg is always the destination */
+          sources.forEach((source) => pushIfNotURL(source));
+      }
+    });
+
+    const deduped = [
+      ...new Set(srcGlobs),
+    ]; /* sometimes, the same file or glob might be included in more than one COPY or ADD directive */
+    const deglobbed = await Promise.all(
+      deduped.map((maybeGlob) => deglobify(maybeGlob, context))
+    ); /* turn globs into the matching absolute paths */
+    return [
+      ...new Set(deglobbed.flat()),
+    ]; /* flatten the deglobbed array, and then in the case that two globs match the same file, only list the file once */
+  };
+
+  const src = await grabSourceFiles();
+
+  const progress = await dockerInstance.buildImage(
+    {
+      context,
+      src,
+    },
+    { t: imageName }
+  );
+
+  await printProgress(Readable.from(progress));
+  console.log(src);
+}
+
+/**
+ * Use this function to turn globs that follow golang's filepath.Match syntax into a list of matching files.
+ * @param glob - a glob pattern to match files to include in the build.
+ * @param context - the directory in which to search for entries that match the glob
+ * @returns a list of relative paths to files to include in the build.
+ *
+ * @remarks
+ * Dockerfiles can include globs that have the following characters:
+ *  - `*` - matches zero or more characters
+ *  - `?` - matches exactly one character
+ *  - `\\` - escapes the next character
+ *  - `[` - starts a character class
+ *  - `]` - ends a character class
+ *  - `-` - matches a range of characters within a character class
+ *  - `^` - negates a character class
+ *
+ * This function uses {@link fast-glob} to turn globs into an array of absolute paths to matching files.
+ * @see https://pkg.go.dev/path/filepath#example-Match
+ */
+async function deglobify(
+  glob: string,
+  context: string
+): Promise<Array<string>> {
+  if (!glob.match(/(\?|\*|\[|\]|\^|\-|\\\\)/)) return [glob];
+
+  const g = glob.replace(
+    /(\[\^)(?=.*\])/g, // todo: test this
+    '[!'
+  ); /* convert golang-style negated character range to js-style character negated range e.g. [^a-z] -> [!a-z] */
+
+  const golangFilepathMatch: PicomatchOptions = {
+    /*
+        keep in mind that picomatch already supports:
+        '*' - matches zero or more characters
+        '?' - matches exactly one character
+        '[` - open character class
+        ']' - close character class
+        '-' - range of characters within a character class
+       */
+    dot: true /* treat . as a regular character */,
+    nobrace: true /* treat { and } as regular characters */,
+    noext: true /* treat +(a|b) as a sequence of regular characters */,
+    noglobstar: true /* treat ** (glob directories) as * (wildcard) */,
+    noquantifiers: true /* treat {n} as regular characters */,
+    unescape:
+      true /* treat `\\` as escape sequence, rather than as regular characters */,
+  };
+
+  const crawler = new fdir();
+  const matchingFiles = (await crawler
+    .withRelativePaths()
+    .filter((path) => isMatch(path, g, golangFilepathMatch))
+    .crawl(context)
+    .withPromise()) as Array<string>; /* all of the files that match are held in memory! This can result in very high memory usage! */
+  return matchingFiles;
+}
+
+/**
+ * download an image from docker hub. If the image is already downloaded, then it will load from your local cache.
  * @param name - the name of the image to download (e.g. 'node')
  * @param tag - the tag of the image to download (e.g. 'current-alpine')
  * @param dockerInstance - the instance of the {@link Docker} class to use.
+ *
+ * @remarks
+ * this function wraps {@link Docker.image.get}
  */
 export async function getImage(
   name: string,
@@ -62,9 +231,6 @@ export async function getImage(
   await printProgress(
     socket
   ); /* assume that socket is correctly sending null byte at end of stream. */
-  socket.once('end', () => {
-    console.log('end of transmission');
-  });
 
   return dockerInstance.getImage(`${name}:${tag}`);
 }
@@ -127,31 +293,33 @@ export async function print(r: Readable | string) {
 }
 
 function prettyPrintJSON(JSONstring: string, truncateAt?: number) {
+  function truncate(line: string, ta: number) {
+    if (line.length > ta) {
+      return line.slice(0, ta - 3) + '...';
+    }
+    return line;
+  }
+
   if (truncateAt && truncateAt < 4) throw new Error('truncateAt must be >= 4');
+  const trimmed = JSONstring.trim();
   try {
-    const j = JSON.parse(JSONstring);
+    const j = JSON.parse(trimmed);
     const toPrint = JSON.stringify(j, null, 2);
     if (truncateAt)
       return toPrint
         .split('\n')
-        .map((line) => {
-          if (line.length > truncateAt) {
-            return line.slice(0, truncateAt - 3) + '...';
-          }
-          return line;
-        })
+        .map((line) => truncate(line, truncateAt))
         .join('\n');
     return toPrint;
   } catch (e) {
-    return `\n\nfailed to parse JSON for:\n\n${JSONstring}\n\n`
-      .split('\n')
-      .map((line) => {
-        if (truncateAt && line.length > truncateAt) {
-          return line.slice(0, truncateAt - 3) + '...';
-        }
-        return line;
-      })
-      .join('\n');
+    const printErr = `\n\nfailed to parse JSON for:${JSONstring}\n`;
+    if (truncateAt) {
+      return printErr
+        .split('\n')
+        .map((line) => truncate(line, truncateAt))
+        .join('\n');
+    }
+    return printErr;
   }
 }
 
