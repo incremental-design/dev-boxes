@@ -10,7 +10,7 @@ const { arrayBuffer } = require('stream/consumers');
 const version = require('./lerna.json').version;
 
 /**
- * the contents of this const are written to `packages/<package-name>/tsconfig.json`
+ * the contents of tsconfig are written to `packages/<package-name>/tsconfig.json`
  */
 const tsconfig = {
   "compilerOptions": {
@@ -47,7 +47,7 @@ const tsconfig = {
 }
 
 /**
- * the contents of this const are written to `packages/<package-name>/package.json`
+ * the contents of package are written to `packages/<package-name>/package.json`
  */
 const package =
 {
@@ -72,6 +72,7 @@ const package =
   "dependencies": {
     "@incremental-design/box-base": "latest",
     "dockerode": "^3.3.1",
+    "docker-file-parser": "^1.0.7",
 
   }
 }
@@ -80,7 +81,7 @@ const packageName = process.argv[2]; /* i.e. ./createPackage.js <package-name> *
 
 
 /**
- * the contents of this const are written to `packages/<package-name>/README.md`
+ * the contents of readme are written to `packages/<package-name>/README.md`
  */
 const readme = `# ${'`' + packageName + '`'}
 <!-- 
@@ -109,7 +110,7 @@ asciicast, video or GIF of adding to your project and using it
 See [${'`' + 'dev-boxes/README.md' + '`'}](../../README.md#contribute-to-dev-boxes).
 `
 /**
- * the contents of this const are written to `packages/<package-name>/src/quickstart.ts`
+ * the contents of quickstart are written to `packages/<package-name>/src/quickstart.ts`
  */
 const quickstart = `import { Docker } from 'node-docker-api';
 /**
@@ -127,7 +128,7 @@ export default quickstart;
 `
 
 /**
- * the contents of this const are written to `packages/<package-name>/runQuickstart.js`
+ * the contents of runQuickstart are written to `packages/<package-name>/runQuickstart.js`
  */
 const runQuickstart =
   `#!/usr/bin/env node
@@ -137,7 +138,7 @@ quickstart();
 `
 
 /**
- * the contents of this const are written to `packages/<package-name>/<packageName>.test.ts`
+ * the contents of test are written to `packages/<package-name>/<packageName>.test.ts`
  */
 const test = `
 // describe('your test here', () => {
@@ -145,6 +146,13 @@ const test = `
 //    
 //  }) 
 // })
+`
+
+/**
+ * the contents of dockerignore are written to `packages/<package-name>/.dockerignore`
+ */
+const dockerignore = `
+node_modules
 `
 
 function stubPackage() {
@@ -169,6 +177,7 @@ function stubPackage() {
   const testPath = path.join(packagePath, `${testBasename}.test.ts`)
 
   fs.writeFileSync(testPath, test, { mode: 0o644 /* same as -rw-r--r-- */ })
+  fs.writeFileSync(path.resolve(packagePath, '.dockerignore'), dockerignore, { mode: 0o644 /* same as -rw-r--r-- */ })
 }
 
 stubPackage();
