@@ -279,7 +279,7 @@ async function deglobify(
  * @remarks
  * this function wraps {@link Docker.image.get}
  */
-export async function getImage(
+export async function getFromDockerHub(
   name: string,
   tag: string,
   dockerInstance: Docker
