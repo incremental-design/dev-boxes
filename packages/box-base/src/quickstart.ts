@@ -302,7 +302,9 @@ export async function getFromDockerHub(
  * @param r - a readable stream that can be encoded as utf8 text.
  */
 export async function printProgress(r: Readable) {
-  const clear = async (clearFrom: number) => {
+  const isTTY = stdout.isTTY;
+  const clear = async (clearFrom = 0) => {
+    if (!isTTY) return; /* if not a TTY, nothing to clear */
     await new Promise<void>((resolve) => {
       readline.cursorTo(stdout, 0, clearFrom, resolve);
     });
@@ -311,17 +313,21 @@ export async function printProgress(r: Readable) {
     });
   };
   let prevCleared = 0;
-  const isTTY = stdout.isTTY;
   for await (const chunk of r) {
-    if (isTTY) {
+    if (
+      isTTY /* don't ask stdout if it is a TTY EVERY time we receive a new chunk. The stdout isn't going to magically stop being a TTY mid-stream */
+    ) {
       const width = stdout.columns;
       const height = stdout.rows;
       const s = prettyPrintJSON(chunk.toString('utf8'), width);
       const lines = s.split('\n');
       const toClear = lines.length;
       const clearFrom =
-        height - (toClear > prevCleared ? toClear : prevCleared);
+        toClear > prevCleared
+          ? toClear
+          : prevCleared; /* this works because the BOTTOM of the screen is 0, and the top of the screen is stdout.rows ... at least if you're using an ANSI terminal */
       await clear(clearFrom);
+      // await clear();
       await new Promise((resolve) => {
         readline.cursorTo(stdout, 0, clearFrom, () => {
           prevCleared = toClear;
