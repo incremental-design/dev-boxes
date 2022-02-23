@@ -31,11 +31,13 @@ async function quickstart(dockerInstance?: Docker): Promise<Docker> {
   // const i = await getImage('node', 'current-alpine', di);
 
   const i = await buildFromDockerfile(
-    resolve(__dirname, '../Dockerfile'),
     di,
+    resolve(__dirname, '../Dockerfile'),
     'box-base',
     'incrementaldesign'
   );
+
+  await startContainer(di, i);
 
   // const imageStatus = await di.image.get('node:current-alpine').status();
 
@@ -55,8 +57,90 @@ async function quickstart(dockerInstance?: Docker): Promise<Docker> {
 
 /**
  *
- * @param pathToDockerfile - the ABSOLUTE PATH to the dockerfile from which to build the image.
+ * @param the docker instance to use.
+ * @param image - the {@link Docker.Image} you want to run.
+ * - The image you want to run MUST be locally available.
+ *    - If the image isn't already available, you can use {@link getFromDockerHub} to get an image from the registry. Use {@link buildFromDockerfile} to build an image from a Dockerfile.
+ *
+ * @param ports - an array of remote ports to forward to your computer, where:
+ * - remote is the port on the image
+ * - local is the port on your computer.
+ *  - Note that if you don't define local port, it will be default to the same port number as the remote port. If that port isn't available, then it will be assigned to the next available port. e.g. if the remote port is 8080, and your computer's port 8080 is in use, then the local port will be 8081.
+ *  - If you define a remote port that isn't exposed in the image, then it will be ignored.
+ * - protocol is either 'tcp' or 'udp'. If you don't know what this setting means, just leave it blank, and it will default to whatever protocol the image exposed.
+ *
+ * @param volumes: an array of volumes to mount, where:
+ * - remotePath is the mountPoint of volume in the container
+ * - localPath is the path to the volume on your computer
+ *
+ * @returns a promise to get the {@link Docker.Container} that was created.
+ *
+ */
+export async function startContainer(
+  dockerInstance: Docker,
+  image: Docker.Image,
+  ports?: Array<{ remote: number; local?: number; protocol?: 'tcp' | 'udp' }>,
+  volumes?: Array<{ remotePath: string; localPath: string }>
+): Promise<void> /* Promise<Docker.Container> */ {
+  const { Id, Config } = await image.inspect();
+  const { ExposedPorts, Volumes } = Config;
+  // if port in use, offer to use next available port in interactive mode, if non interactive mode, just console warn and use next available port. be sure to remap ports accordingly.
+  // need to return the newly created container
+
+  const localToForward = new Map<
+    number,
+    { remote: number; protocol: string }
+  >();
+
+  if (ports) {
+    const e = Object.keys(ExposedPorts).map((port) => port.split('/'));
+    const exposed = new Map<number, string>();
+    e.forEach((p) => exposed.set(parseInt(p[0]), p[1]));
+
+    for (const port of ports) {
+      const exposedProtocol = exposed.get(port.remote);
+      if (!exposedProtocol)
+        throw new Error(
+          `Port ${port.remote} is not exposed in the image.${
+            port.local ? "You can't forward it to localhost/" + port.local : '.'
+          }`
+        );
+      if (port.protocol && port.protocol !== exposedProtocol) {
+        throw new Error(
+          `port ${port.remote} is exposed as ${exposedProtocol}, but you specified ${port.protocol}.`
+        );
+      }
+      localToForward.set(port.remote, {
+        remote: port.remote,
+        protocol: exposedProtocol,
+      });
+    }
+
+    // todo: bind volumes
+  }
+
+  /* now local has all the ports to bind */
+  console.log(Id);
+
+  // https://github.com/apocas/dockerode#creating-a-container
+  // const c = await dockerInstance.createContainer({
+  //   Image: Id,
+  // });
+  // console.log(c);
+  // const response = await c.start();
+  // console.log(response);
+  const runData = await dockerInstance.run(
+    Id,
+    ['./testExec.js'],
+    process.stdout
+  );
+  console.log(runData);
+}
+
+/**
+ *
  * @param dockerInstance - the instance of the {@link Docker} class to use.
+ * @param pathToDockerfile - the ABSOLUTE PATH to the dockerfile from which to build the image.
  * @param imageName - the name of the image to build. This name must be:
  * - between 2 and 255 characters long
  * - contain only lowercase letters, numbers, hypens and underscores
@@ -70,8 +154,8 @@ async function quickstart(dockerInstance?: Docker): Promise<Docker> {
  *
  */
 export async function buildFromDockerfile(
-  pathToDockerfile: string,
   dockerInstance: Docker,
+  pathToDockerfile: string,
   imageName: string,
   username?: string
 ) {
@@ -270,9 +354,9 @@ async function deglobify(
 
 /**
  * download an image from docker hub. If the image is already downloaded, then it will load from your local cache.
+ * @param dockerInstance - the instance of the {@link Docker} class to use.
  * @param name - the name of the image to download (e.g. 'node')
  * @param tag - the tag of the image to download (e.g. 'current-alpine')
- * @param dockerInstance - the instance of the {@link Docker} class to use.
  *
  * @returns a promise to get the {@link Docker.Image } that was just downloaded.
  *
@@ -280,9 +364,9 @@ async function deglobify(
  * this function wraps {@link Docker.image.get}
  */
 export async function getFromDockerHub(
+  dockerInstance: Docker,
   name: string,
-  tag: string,
-  dockerInstance: Docker
+  tag: string
 ): Promise<Docker.Image> {
   const socket = await new Promise<Socket>((resolve, reject) => {
     dockerInstance.pull(`${name}:${tag}`, (err: any, s: Socket) => {

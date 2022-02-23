@@ -169,7 +169,7 @@ COPY * /app
 
 # create '/app/node_modules' and install dependencies. See: https://youtu.be/gAkwW2tuIqE?t=278
 
-RUN yarn
+RUN ["yarn"]
 
 # pass whatever process.env variables your app needs to run with 'ENV'. See: https://youtu.be/gAkwW2tuIqE?t=322
 # ENV PORT=8080
@@ -177,9 +177,8 @@ RUN yarn
 # Tell docker to forward the port from the container to the host, with EXPOSE See: https://youtu.be/gAkwW2tuIqE?t=335
 # EXPOSE 8080
 
-# tell docker what to run when it starts. This is the LAST instruction in the dockerfile. See: https://youtu.be/gAkwW2tuIqE?t=339
-
-CMD ["yarn", "build"]
+# tell docker what executable to run when the container starts
+ENTRYPOINT ["node" , "yourAwesomeScript.js"]
 
 # note that RUN spawns a shell, while CMD doesn't. See: https://youtu.be/gAkwW2tuIqE?t=350
 `
