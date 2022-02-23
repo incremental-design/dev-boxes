@@ -6,7 +6,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const { arrayBuffer } = require('stream/consumers');
 const version = require('./lerna.json').version;
 
 /**
@@ -73,7 +72,6 @@ const package =
     "@incremental-design/box-base": "latest",
     "dockerode": "^3.3.1",
     "docker-file-parser": "^1.0.7",
-
   }
 }
 
@@ -112,7 +110,8 @@ See [${'`' + 'dev-boxes/README.md' + '`'}](../../README.md#contribute-to-dev-box
 /**
  * the contents of quickstart are written to `packages/<package-name>/src/quickstart.ts`
  */
-const quickstart = `import { Docker } from 'node-docker-api';
+const quickstart = `import { Docker } from 'dockerode'; /* this talks to the docker API at \`/var/run/docker.sock\` see: https://www.npmjs.com/package/dockerode */
+// import { parse as parseDockerFile } from 'docker-file-parser'; /* this parses dockerfiles. See: https://www.npmjs.com/package/docker-file-parser */
 /**
  * 
  * @param dockerInstance - an instance of the {@link Docker} class. If an instance isn't provided, then quickstart will create one for you. The idea is that you can chain quickstarts together, sharing the same docker instance among them.
@@ -152,7 +151,37 @@ const test = `
  * the contents of dockerignore are written to `packages/<package-name>/.dockerignore`
  */
 const dockerignore = `
+# see https://youtu.be/gAkwW2tuIqE?t=297
 node_modules
+`
+
+/**
+ * the contents of dockerfile are written to `packages/<package-name>/Dockerfile`
+ */
+const dockerfile = `
+# before you begin, you need to tell docker what image to start from. See: https://youtu.be/gAkwW2tuIqE?t=186
+
+FROM node:latest
+
+# Create an '/app' directory in your container, and copy your source code into it. See: https://youtu.be/gAkwW2tuIqE?t=227
+
+COPY * /app
+
+# create '/app/node_modules' and install dependencies. See: https://youtu.be/gAkwW2tuIqE?t=278
+
+RUN yarn
+
+# pass whatever process.env variables your app needs to run with 'ENV'. See: https://youtu.be/gAkwW2tuIqE?t=322
+# ENV PORT=8080
+
+# Tell docker to forward the port from the container to the host, with EXPOSE See: https://youtu.be/gAkwW2tuIqE?t=335
+# EXPOSE 8080
+
+# tell docker what to run when it starts. This is the LAST instruction in the dockerfile. See: https://youtu.be/gAkwW2tuIqE?t=339
+
+CMD ["yarn", "build"]
+
+# note that RUN spawns a shell, while CMD doesn't. See: https://youtu.be/gAkwW2tuIqE?t=350
 `
 
 function stubPackage() {
@@ -160,7 +189,7 @@ function stubPackage() {
   const author = process.argv[3];
   const description = process.argv[4];
   if (packageName.match(/^[^a-z0-9-]+$/)) throw new Error('package name must only contain lowercase letters, numbers, and dashes');
-  if (!packageName.match(/^box/)) throw new Error(`package name must start with "box-" i.e. box-${packageName}`);
+  if (!packageName.match(/^box/)) throw new Error(`package name must start with "box-" i.e.box - ${packageName} `);
 
   const packagePath = path.resolve(__dirname, 'packages', process.argv[2])
   fs.mkdirSync(packagePath, { mode: 0o755 /* same as drwxr-xr-x */ });
@@ -178,6 +207,8 @@ function stubPackage() {
 
   fs.writeFileSync(testPath, test, { mode: 0o644 /* same as -rw-r--r-- */ })
   fs.writeFileSync(path.resolve(packagePath, '.dockerignore'), dockerignore, { mode: 0o644 /* same as -rw-r--r-- */ })
+
+  fs.writeFileSync(path.resolve(packagePath, 'Dockerfile'), dockerfile, { mode: 0o644 /* same as -rw-r--r-- */ })
 }
 
 stubPackage();
