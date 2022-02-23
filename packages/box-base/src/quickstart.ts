@@ -4,7 +4,7 @@ import prompts, { PromptObject } from 'prompts';
 import keytar from 'keytar';
 import { spawn } from 'child_process';
 import { stat } from 'fs/promises';
-import { PassThrough, Readable } from 'stream';
+import { Readable, Transform } from 'stream';
 import { stdin, stdout } from 'process';
 import * as readline from 'readline';
 import Docker from 'dockerode';
@@ -70,7 +70,7 @@ async function quickstart(dockerInstance?: Docker): Promise<Docker> {
 export async function buildFromDockerfile(
   pathToDockerfile: string,
   dockerInstance: Docker,
-  imageName?: string
+  imageName: string
 ) {
   const { root } = parse(pathToDockerfile);
   if (root === '') throw new Error('dockerfile must be an absolute path');
@@ -79,12 +79,12 @@ export async function buildFromDockerfile(
   const context = dir;
   const srcGlobs = [base];
 
-  if (imageName && imageName.match(/[^a-z0-9-_]/))
+  if (imageName.match(/[^a-z0-9-_]/))
     throw new Error(
       'image name must be lowercase alphanumeric with dashes and underscores. Received ' +
         imageName
     );
-  if (imageName && imageName.length > 255)
+  if (imageName.length > 255)
     throw new Error(
       'image name must be 255 characters or less. Received ' +
         imageName +
@@ -147,11 +147,48 @@ export async function buildFromDockerfile(
     { t: imageName }
   );
 
-  await printProgress(Readable.from(progress));
+  const p = Readable.from(progress);
 
-  const i = imageName || '';
+  let lastChunk = '';
 
-  return dockerInstance.getImage();
+  const t = new Transform({
+    transform(chunk, encoding, callback) {
+      const removeNewlines = (b: Buffer) => {
+        let indices: Array<number> = [];
+        do {
+          const i = b.indexOf(
+            Buffer.from([0x5c, 0x6e]),
+            indices.length > 0 ? indices[indices.length - 1] + 1 : 0
+          );
+          if (i === -1) break;
+          indices.push(i);
+        } while (true);
+        indices.unshift(-2 /* because 0x5c 0x6e is two bytes */);
+        indices.push(b.length);
+        const slices: Array<Buffer> = [];
+        for (let i = 0; i < indices.length - 1; i++) {
+          slices.push(
+            b.slice(
+              indices[i] + 2 /* it's +2 because 0x5c 0x6e is two bytes */,
+              indices[i + 1]
+            )
+          );
+        }
+        return Buffer.concat(slices);
+      };
+      const s = removeNewlines(chunk).toString('utf-8');
+      lastChunk = s;
+      callback(null, s);
+    },
+  });
+
+  p.on('error', (err) => {
+    t.end();
+  });
+
+  await print(p.pipe(t));
+
+  return dockerInstance.getImage(imageName);
 }
 
 /**
@@ -200,7 +237,7 @@ async function deglobify(
     noquantifiers: true /* treat {n} as regular characters */,
     unescape:
       true /* treat `\\` as escape sequence, rather than as regular characters */,
-  };
+  }; // todo: test support for quoted strings: e.g. ADD "foo bar" "baz" "qux" since dockerfile requires string literals to be quoted if they contain spaces
 
   const crawler = new fdir();
   const matchingFiles = (await crawler
@@ -289,9 +326,13 @@ export async function print(r: Readable | string) {
     stdout.write(`\n${prettyPrintJSON(r)}\n`);
   } else {
     for await (const chunk of r) {
-      await new Promise((resolve) => {
-        stdout.write(`\n${prettyPrintJSON(chunk.toString('utf8'))}\n`, resolve);
-      });
+      const lines = chunk.toString('utf8').split('\n');
+      for (const line of lines) {
+        await new Promise((resolve) => {
+          if (line !== '')
+            stdout.write(`\n${prettyPrintJSON(line)}\n`, resolve);
+        });
+      }
     }
   }
 }
@@ -316,7 +357,7 @@ function prettyPrintJSON(JSONstring: string, truncateAt?: number) {
         .join('\n');
     return toPrint;
   } catch (e) {
-    const printErr = `\n\nfailed to parse JSON for:${JSONstring}\n`;
+    const printErr = `failed to parse JSON for:\n${trimmed}\n`;
     if (truncateAt) {
       return printErr
         .split('\n')
