@@ -5,7 +5,7 @@ import keytar from 'keytar';
 import { spawn } from 'child_process';
 import { stat } from 'fs/promises';
 import { Readable, Transform } from 'stream';
-import { stdin, stdout } from 'process';
+import { stdout } from 'process';
 import * as readline from 'readline';
 import Docker from 'dockerode';
 import { Socket } from 'net';
@@ -33,7 +33,8 @@ async function quickstart(dockerInstance?: Docker): Promise<Docker> {
   const i = await buildFromDockerfile(
     resolve(__dirname, '../Dockerfile'),
     di,
-    'my-fun-image'
+    'box-base',
+    'incrementaldesign'
   );
 
   // const imageStatus = await di.image.get('node:current-alpine').status();
@@ -59,6 +60,7 @@ async function quickstart(dockerInstance?: Docker): Promise<Docker> {
  * @param imageName - the name of the image to build. This name must be:
  * - between 2 and 255 characters long
  * - contain only lowercase letters, numbers, hypens and underscores
+ * @param username - the dockerhub username under which you want to publish the image.
  *
  * @remarks
  * this function assumes that everything file referenced within the dockerfile is in the same directory as the dockerfile itself, or in a subdirectory of the dockerfile's directory. It WILL break if this isn't the case. In docker parlance, the dockerfile is the "context" of the image.
@@ -70,7 +72,8 @@ async function quickstart(dockerInstance?: Docker): Promise<Docker> {
 export async function buildFromDockerfile(
   pathToDockerfile: string,
   dockerInstance: Docker,
-  imageName: string
+  imageName: string,
+  username?: string
 ) {
   const { root } = parse(pathToDockerfile);
   if (root === '') throw new Error('dockerfile must be an absolute path');
@@ -84,13 +87,28 @@ export async function buildFromDockerfile(
       'image name must be lowercase alphanumeric with dashes and underscores. Received ' +
         imageName
     );
-  if (imageName.length > 255)
+
+  if (username && username.match(/[^a-z0-9-_]/))
     throw new Error(
-      'image name must be 255 characters or less. Received ' +
-        imageName +
-        ' which is ' +
-        imageName.length +
-        ' characters long.'
+      'username must be lowercase alphanumeric with dashes and underscores. Received ' +
+        username
+    );
+  if (
+    imageName.length +
+      (username
+        ? username.length +
+          1 /* +1 accommodates the / character between username and imageName */
+        : 0) >
+    245
+  )
+    throw new Error(
+      `${
+        username ? 'combined length of image name and username' : 'image name'
+      } must less than 245 characters. Received ${
+        (username ? username + '/' : '') + imageName
+      } which is ${
+        imageName.length + (username ? username.length + 1 : 0)
+      } characters long.`
     );
 
   const grabSourceFiles = async () => {
@@ -139,12 +157,14 @@ export async function buildFromDockerfile(
 
   const src = await grabSourceFiles();
 
+  const n = username ? username + '/' + imageName : imageName;
+
   const progress = await dockerInstance.buildImage(
     {
       context,
       src,
     },
-    { t: imageName }
+    { t: n }
   );
 
   const p = Readable.from(progress);
@@ -186,9 +206,9 @@ export async function buildFromDockerfile(
     t.end();
   });
 
-  await print(p.pipe(t));
+  await printProgress(p.pipe(t));
 
-  return dockerInstance.getImage(imageName);
+  return dockerInstance.getImage(n);
 }
 
 /**
