@@ -1,5 +1,14 @@
 import Docker from 'dockerode';
-import { isDockerReady, buildFromDockerfile, startContainer } from './utils';
+import {
+  isDockerReady,
+  buildFromDockerfile,
+  startContainer,
+  getAnswersFromCLI,
+  addToKeychain,
+  retrieveFromKeychain,
+  makePasswordPrompt,
+  generatePasswords,
+} from './utils';
 import { resolve } from 'path';
 
 /**
@@ -8,37 +17,31 @@ import { resolve } from 'path';
  *
  * @returns dockerInstance - the same instance of the {@link Docker} class that was passed in, or if no instance was passed in, a new instance.
  */
-const quickstart: QuickstartFunction = async (dockerInstance?: Docker) => {
-  const dockerReady = await isDockerReady();
-  if (!dockerReady)
+const quickstart: QuickstartFunction = async (dockerInstance, options) => {
+  const quickstartName = __dirname
+    .split('/')
+    .slice(0, -2)
+    .pop(); /* i.e. '/path/to/packages/box-base/src/quickstart.ts' -> ['','path','to','packages','box-base','src','quickstart.ts'] -> ['','path','to','packages','box-base'] -> 'box-base' */
+  if (!(await isDockerReady()))
     throw new Error('Docker is either not installed or not running');
-  // docker run node:17-alpine node -v
+
   const di =
     dockerInstance || new Docker({ socketPath: '/var/run/docker.sock' });
-  // const i = await getImage('node', 'current-alpine', di);
 
-  const i = await buildFromDockerfile(
-    di,
-    resolve(__dirname, '../Dockerfile'),
-    'box-base',
-    'incrementaldesign'
-  );
-
-  await startContainer(di, i);
-
-  // const imageStatus = await di.image.get('node:current-alpine').status();
-
-  // await print(
-  //   JSON.stringify(i)
-  // ); /* this is inefficient because we are stringifying JSON, then parsing it, then stringifying it again */
-  // const boxBase = await di.container.create({
-  //   Image: 'node',
-  //   name: 'box-base',
-  // });
-  // await boxBase.start();
-  // await boxBase.stop();
-  // await boxBase.restart();
-  // await boxBase.delete({ force: true });
+  try {
+    const i = await buildFromDockerfile(
+      di,
+      resolve(__dirname, '../Dockerfile'),
+      'box-base',
+      'incrementaldesign'
+    );
+    await startContainer(di, i);
+  } catch (e) {
+    console.error(e);
+    console.error(quickstartName + ' failed.');
+    process.exitCode = 1;
+    return di;
+  }
   return di;
 };
 

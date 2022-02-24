@@ -121,11 +121,34 @@ import { isDockerReady, buildFromDockerfile, startContainer, QuickstartFunction,
  */
 const quickstart: QuickstartFunction = (dockerInstance, options) => {
 
-  // use the quickstart to run a CLI that starts a docker container
+  if (!await isDockerReady())
+  throw new Error('Docker is either not installed or not running');
 
   const di = dockerInstance || new Docker({ socketPath: '/var/run/docker.sock' });
-  // your code here
+
+  const quickstartName = __dirname.split('/').slice(0, -2).pop(); /* i.e. '/path/to/packages/${packageName}/src/quickstart.ts' -> ['','path','to','packages','${packageName}','src','quickstart.ts'] -> ['','path','to','packages','${packageName}'] -> '${packageName}' */
+
+  try {
+
+    const i = await buildFromDockerfile(
+      di,
+      resolve(__dirname, '../Dockerfile'),
+      '${packageName}',
+      'incrementaldesign'
+    );
+    await startContainer(di, i); // bind ports, attach volumes, set environment variables
+
+    // do things with the container
+    
+  } catch (e) {
+    console.error(e);
+    console.error(quickstartName +
+      ' failed.');
+    process.exitCode = 1;
+  }
+
   return di;
+
 }
 export default quickstart;
 `

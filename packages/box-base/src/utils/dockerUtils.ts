@@ -36,7 +36,8 @@ export async function startContainer(
   dockerInstance: Docker,
   image: Docker.Image,
   ports?: Array<{ remote: number; local?: number; protocol?: 'tcp' | 'udp' }>,
-  volumes?: Array<{ remotePath: string; localPath: string }>
+  volumes?: Array<{ remotePath: string; localPath: string }>,
+  environmentVariables?: { [key: string]: string }
 ): Promise<void> /* Promise<Docker.Container> */ {
   const { Id, Config } = await image.inspect();
   const { ExposedPorts, Volumes } = Config;
