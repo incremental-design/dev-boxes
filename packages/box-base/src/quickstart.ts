@@ -8,7 +8,7 @@ import { resolve } from 'path';
  *
  * @returns dockerInstance - the same instance of the {@link Docker} class that was passed in, or if no instance was passed in, a new instance.
  */
-async function quickstart(dockerInstance?: Docker): Promise<Docker> {
+const quickstart: QuickstartFunction = async (dockerInstance?: Docker) => {
   const dockerReady = await isDockerReady();
   if (!dockerReady)
     throw new Error('Docker is either not installed or not running');
@@ -40,7 +40,15 @@ async function quickstart(dockerInstance?: Docker): Promise<Docker> {
   // await boxBase.restart();
   // await boxBase.delete({ force: true });
   return di;
-}
+};
+
+/**
+ * a quickstartFunction is any function that takes in a @link Docker} instance and promises to return a {@link Docker} instance. Ideally, this function should return the same docker instance it received. This lets quickstarts share the same docker instance.
+ */
+export type QuickstartFunction = (
+  dockerInstance?: Docker,
+  options?: { [key: string]: any }
+) => Promise<Docker>;
 
 export default quickstart;
-export * from './utils'; /* this hack lets us re-use everything in utils ... without making an entirely separate package for it. */
+export * from './utils'; /* this lets us re-use everything in utils ... without making an entirely separate package for it. */

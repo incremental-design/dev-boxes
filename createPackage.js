@@ -112,13 +112,17 @@ See [${'`' + 'dev-boxes/README.md' + '`'}](../../README.md#contribute-to-dev-box
  */
 const quickstart = `import { Docker } from 'dockerode'; /* this talks to the docker API at \`/var/run/docker.sock\` see: https://www.npmjs.com/package/dockerode */
 // import { parse as parseDockerFile } from 'docker-file-parser'; /* this parses dockerfiles. See: https://www.npmjs.com/package/docker-file-parser */
+import { isDockerReady, buildFromDockerfile, startContainer, QuickstartFunction, getAnswersFromCLI, addToKeychain, retrieveFromKeychain, makePasswordPrompt, generatePasswords } from '@incremental.design/box-base';
 /**
  * 
  * @param dockerInstance - an instance of the {@link Docker} class. If an instance isn't provided, then quickstart will create one for you. The idea is that you can chain quickstarts together, sharing the same docker instance among them.
  * 
  * @returns dockerInstance - the same instance of the {@link Docker} class that was passed in, or if no instance was passed in, a new instance.
  */
-async function quickstart(dockerInstance?: Docker):Promise<Docker> {
+const quickstart: QuickstartFunction = (dockerInstance, options) => {
+
+  // use the quickstart to run a CLI that starts a docker container
+
   const di = dockerInstance || new Docker({ socketPath: '/var/run/docker.sock' });
   // your code here
   return di;

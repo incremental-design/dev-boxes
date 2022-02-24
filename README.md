@@ -24,11 +24,13 @@ Every package in Dev Boxes contains one or more virtual machines or docker conta
 
 Every package in Dev Boxes inherits from the `src/base-box` package. This package contains a CLI that installs an [`alpine linux`](https://hub.docker.com/_/alpine) container. It doesn't do anything else. It is the bare minimum needed to launch a container with a CLI. This package is the starting point for every other package in this monorepo. If you are trying to figure out how a package is organized, start by comparing its contents to those of `base-box`.
 
+<!-- need to explain the idea of quickstarts and chaining -->
+
 ## Roadmap:
 
-- 0.1: make a `base-box` package.
-- 0.2: make a `vue3-supabase` package.
-- 0.3: make a `vue3-strapi` package.
+- 0.1: make a `box-base` package.
+- 0.2: make a `box-vue3-supabase` package.
+- 0.3: make a `box-vue3-strapi` package.
 
 ## Contribute to Dev Boxes:
 
