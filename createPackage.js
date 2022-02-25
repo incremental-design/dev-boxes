@@ -112,44 +112,26 @@ See [${'`' + 'dev-boxes/README.md' + '`'}](../../README.md#contribute-to-dev-box
  */
 const quickstart = `import { Docker } from 'dockerode'; /* this talks to the docker API at \`/var/run/docker.sock\` see: https://www.npmjs.com/package/dockerode */
 // import { parse as parseDockerFile } from 'docker-file-parser'; /* this parses dockerfiles. See: https://www.npmjs.com/package/docker-file-parser */
-import { isDockerReady, buildFromDockerfile, startContainer, QuickstartFunction, getAnswersFromCLI, addToKeychain, retrieveFromKeychain, makePasswordPrompt, generatePasswords } from '@incremental.design/box-base';
+import { isDockerReady, buildFromDockerfile, startContainer, quickstartFactory, getAnswersFromCLI, addToKeychain, retrieveFromKeychain, makePasswordPrompt, generatePasswords } from '@incremental.design/box-base';
 /**
  * 
  * @param dockerInstance - an instance of the {@link Docker} class. If an instance isn't provided, then quickstart will create one for you. The idea is that you can chain quickstarts together, sharing the same docker instance among them.
  * 
  * @returns dockerInstance - the same instance of the {@link Docker} class that was passed in, or if no instance was passed in, a new instance.
  */
-const quickstart: QuickstartFunction = (dockerInstance, options) => {
 
-  if (!await isDockerReady())
-  throw new Error('Docker is either not installed or not running');
+ const quickstartName = __dirname.split('/').slice(0, -2).pop(); /* i.e. '/path/to/packages/${packageName}/src/quickstart.ts' -> ['','path','to','packages','${packageName}','src','quickstart.ts'] -> ['','path','to','packages','${packageName}'] -> '${packageName}' */
 
-  const di = dockerInstance || new Docker({ socketPath: '/var/run/docker.sock' });
-
-  const quickstartName = __dirname.split('/').slice(0, -2).pop(); /* i.e. '/path/to/packages/${packageName}/src/quickstart.ts' -> ['','path','to','packages','${packageName}','src','quickstart.ts'] -> ['','path','to','packages','${packageName}'] -> '${packageName}' */
-
-  try {
-
-    const i = await buildFromDockerfile(
-      di,
-      resolve(__dirname, '../Dockerfile'),
-      '${packageName}',
-      'incrementaldesign'
-    );
-    await startContainer(di, i); // bind ports, attach volumes, set environment variables
-
-    // do things with the container
-    
-  } catch (e) {
-    console.error(e);
-    console.error(quickstartName +
-      ' failed.');
-    process.exitCode = 1;
-  }
-
-  return di;
-
-}
+const quickstart = quickstartFactory<{ /* your options here */ }>(
+  quickstartName,
+  async (dockerInstance: Docker, options) => {
+    /* do something with dockerInstance and options here */
+  },
+  async () => {
+    /* write a CLI prompt to ask user for options here */
+    return { /* the answers from the CLI prompt, in the format of options */ }
+  };
+);
 export default quickstart;
 `
 
