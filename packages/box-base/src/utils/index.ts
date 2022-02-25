@@ -1,4 +1,3 @@
-export * from './cliUtils';
 export * from './buildFromDockerfile';
 export * from './print';
 export * from './deglobify';
@@ -8,3 +7,8 @@ export * from './isDockerReady';
 export * from './checkDocker';
 export * from './getFromDockerHub';
 export * from './startContainer';
+export * from './addToKeychain';
+export * from './retrieveFromKeychain';
+export * from './getAnswersFromCLI';
+export * from './makePasswordPrompt';
+export * from './generatePasswords';
