@@ -4,4 +4,4 @@ ADD * /the/workdir/path/
 EXPOSE 8080
 RUN [ "yarn" ]
 ENTRYPOINT [ "node" ]
-# CMD [ "./testExec.js" ]
+CMD [ "./testExec.js" ]

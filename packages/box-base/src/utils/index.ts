@@ -12,3 +12,4 @@ export * from './retrieveFromKeychain';
 export * from './getAnswersFromCLI';
 export * from './makePasswordPrompt';
 export * from './generatePasswords';
+export * from './streamContainerOutput';

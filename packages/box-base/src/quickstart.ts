@@ -1,12 +1,9 @@
 import {
-  isDockerReady,
   buildFromDockerfile,
   startContainer,
   getAnswersFromCLI,
-  addToKeychain,
-  retrieveFromKeychain,
-  makePasswordPrompt,
-  generatePasswords,
+  streamContainerOutput,
+  print,
 } from './utils';
 import { resolve } from 'path';
 import { quickstartFactory } from './utils/quickstartFactory';
@@ -28,7 +25,17 @@ const quickstart = quickstartFactory<{
       'box-base',
       'incrementaldesign'
     );
-    await startContainer(dockerInstance, i);
+    const c = await startContainer(dockerInstance, i);
+    await new Promise<void>((resolve) => setTimeout(resolve, 5000));
+    const { stdout, stderr, detach } = await streamContainerOutput(c, true);
+
+    let count = 0;
+    for await (const chunk of stdout) {
+      count += 1;
+      print(`{"stdout": "${chunk.toString().trim()}"}`);
+      if (count > 10) await detach();
+    }
+    console.log('stream closed!');
   },
   async () => {
     const answers = await getAnswersFromCLI([

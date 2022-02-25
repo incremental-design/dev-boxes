@@ -1,4 +1,4 @@
-import Docker from 'dockerode';
+import Docker, { Container } from 'dockerode';
 
 /**
  *
@@ -27,10 +27,12 @@ export async function startContainer(
   ports?: Array<{ remote: number; local?: number; protocol?: 'tcp' | 'udp' }>,
   volumes?: Array<{ mountPoint: string; volume: string | Docker.Volume }>,
   environmentVariables?: { [key: string]: string }
-): Promise<void> /* Promise<Docker.Container> */ {
+): Promise<Container> {
   const { Id, Config } = await image.inspect();
   const { ExposedPorts, Volumes } = Config;
+
   // if port in use, offer to use next available port in interactive mode, if non interactive mode, just console warn and use next available port. be sure to remap ports accordingly.
+
   // need to return the newly created container
 
   const localToForward = new Map<
@@ -75,10 +77,18 @@ export async function startContainer(
   // console.log(c);
   // const response = await c.start();
   // console.log(response);
-  const runData = await dockerInstance.run(
-    Id,
-    ['./testExec.js'],
-    process.stdout
-  );
-  console.log(runData); // how to stream the stdout instead of waiting around for it?
+
+  const container = await dockerInstance.createContainer({
+    Tty: false,
+    Image: Id,
+  });
+  container.start();
+  return container;
+
+  // const runData = await dockerInstance.run(
+  //   Id,
+  //   ['./testExec.js'],
+  //   process.stdout
+  // );
+  // console.log(runData); // how to stream the stdout instead of waiting around for it?
 }

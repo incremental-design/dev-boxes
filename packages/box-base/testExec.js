@@ -2,4 +2,8 @@
 
 const c = 'hello world'
 
-console.log(c);
+const logForever = () => {
+  console.log(c)
+  setTimeout(logForever, 1000)
+}
+logForever();
