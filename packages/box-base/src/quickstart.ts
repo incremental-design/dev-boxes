@@ -25,7 +25,9 @@ const quickstart = quickstartFactory<{
       'box-base',
       'incrementaldesign'
     );
-    const c = await startContainer(dockerInstance, i);
+    const c = await startContainer(dockerInstance, i, [
+      { remote: 8080, local: options.test2 },
+    ]);
     await new Promise<void>((resolve) => setTimeout(resolve, 5000));
     const { stdout, stderr, detach } = await streamContainerOutput(c, true);
 
@@ -43,7 +45,7 @@ const quickstart = quickstartFactory<{
       {
         type: 'number',
         name: 'test2',
-        message: 'what is your favorite number',
+        message: 'which port should container listen on?',
       },
       {
         type: 'confirm',

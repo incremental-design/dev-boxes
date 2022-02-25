@@ -24,7 +24,14 @@ import Docker, { Container } from 'dockerode';
 export async function startContainer(
   dockerInstance: Docker,
   image: Docker.Image,
-  ports?: Array<{ remote: number; local?: number; protocol?: 'tcp' | 'udp' }>,
+  ports?: Array<{
+    remote: number;
+    local?: number;
+    protocol?:
+      | 'tcp'
+      | 'udp'
+      | 'sctp' /* see: https://docs.docker.com/engine/api/v1.37/#operation/ContainerCreate */;
+  }>,
   volumes?: Array<{ mountPoint: string; volume: string | Docker.Volume }>,
   environmentVariables?: { [key: string]: string }
 ): Promise<Container> {
@@ -58,7 +65,7 @@ export async function startContainer(
           `port ${port.remote} is exposed as ${exposedProtocol}, but you specified ${port.protocol}.`
         );
       }
-      localToForward.set(port.remote, {
+      localToForward.set(port.local || port.remote, {
         remote: port.remote,
         protocol: exposedProtocol,
       });
@@ -67,28 +74,39 @@ export async function startContainer(
     // todo: bind volumes
   }
 
-  /* now local has all the ports to bind */
-  console.log(Id);
-
-  // https://github.com/apocas/dockerode#creating-a-container
-  // const c = await dockerInstance.createContainer({
-  //   Image: Id,
-  // });
-  // console.log(c);
-  // const response = await c.start();
-  // console.log(response);
+  const makePortBindings = () => {
+    if (!ports) return {};
+    const portBindings: {
+      [remote: string]: [
+        {
+          HostIp: string;
+          HostPort: string;
+        }
+      ];
+    } = {};
+    for (const p of localToForward) {
+      const local = p[0];
+      const remotePort = p[1].remote;
+      const remoteProtocol = p[1].protocol;
+      portBindings[`${remotePort}/${remoteProtocol}`] = [
+        {
+          HostIp: '127.0.0.1', // we MIGHT need to swap this out for something more modular later on depending on how we run docker compose
+          HostPort: `${local}`,
+        },
+      ];
+      return { PortBindings: portBindings };
+    }
+  };
 
   const container = await dockerInstance.createContainer({
+    /* pretty much ALL of the configuration happens in this object. see: https://docs.docker.com/engine/api/v1.37/#operation/ContainerCreate */
     Tty: false,
     Image: Id,
+    HostConfig: {
+      ...makePortBindings(),
+    },
   });
-  container.start();
-  return container;
 
-  // const runData = await dockerInstance.run(
-  //   Id,
-  //   ['./testExec.js'],
-  //   process.stdout
-  // );
-  // console.log(runData); // how to stream the stdout instead of waiting around for it?
+  await container.start();
+  return container;
 }
