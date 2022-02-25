@@ -1,4 +1,3 @@
-import Docker from 'dockerode';
 import {
   isDockerReady,
   buildFromDockerfile,
@@ -32,7 +31,25 @@ const quickstart = quickstartFactory<{
     await startContainer(dockerInstance, i);
   },
   async () => {
-    return { test: 'a', test2: 1, test3: true };
+    const answers = await getAnswersFromCLI([
+      { type: 'text', name: 'test', message: "what's your favorite color" },
+      {
+        type: 'number',
+        name: 'test2',
+        message: 'what is your favorite number',
+      },
+      {
+        type: 'confirm',
+        name: 'test3',
+        message: 'yes or no',
+      },
+    ]);
+    console.log(answers);
+    return answers as unknown as {
+      test: string;
+      test2: number;
+      test3: boolean;
+    };
   }
 );
 
