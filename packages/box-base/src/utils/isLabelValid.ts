@@ -18,7 +18,7 @@ export function isLabelValid(label: { key: string; value: string }): {
   valid: boolean;
   message?: string;
 } {
-  const valid = !label.key.match(/[^a-z.-]/);
+  const valid = !label.key.match(/[^0-9a-z.-]/);
   if (!valid)
     return {
       valid,

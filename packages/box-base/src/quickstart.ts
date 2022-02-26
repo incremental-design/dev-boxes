@@ -28,7 +28,7 @@ const quickstart = quickstartFactory<{
     );
     const v = await createLocalVolume(options.test, {
       MyInValIdKeY: 'abc123',
-      myvalidkey: 'abc123',
+      myValidkey: 'abc123',
       'design.incremental': 'abc123',
     });
     const c = await startContainer(dockerInstance, i, [

@@ -38,11 +38,6 @@ export async function createLocalVolume(
       return label;
     };
     const l: { [key: string]: string } = {};
-    // (await Promise.all(labelObjects.map((l) => validateLabel(l)))).forEach(
-    //   (label) => {
-    //     l[label.key] = label.value;
-    //   }
-    // );
     for (const o of labelObjects) {
       const validated = await validateLabel(
         o
