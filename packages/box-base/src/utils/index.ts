@@ -13,3 +13,5 @@ export * from './getAnswersFromCLI';
 export * from './makePasswordPrompt';
 export * from './generatePasswords';
 export * from './streamContainerOutput';
+export * from './createLocalVolume';
+export * from './isLabelValid';

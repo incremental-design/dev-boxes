@@ -6,7 +6,7 @@ import prompts, { PromptObject } from 'prompts';
  *
  * @param questions - an array of {@link prompts.PromptObject}s
  *
- * @returns an object in which each of the {prompts.promptObject.name}s is a key and the user input is the value.
+ * @returns an object in which each of the {prompts.promptObject.name}s is a key and either the flag or user response to the prompt is the value.
  *
  * @example
  * ```typescript
@@ -27,11 +27,14 @@ export async function getAnswersFromCLI(
 ) {
   const cli = cac();
   const { args, options } = cli.parse();
-  let flags: Array<{ [key: string]: any }> = [];
+  const flags: { [key: string]: any } = {};
   let nonInteractive = true;
   const questionsToAsk = questions.map((prompt) => {
     if (typeof prompt.name === 'string' && options[prompt.name]) {
-      flags.push(options[prompt.name]);
+      flags[prompt.name] =
+        options[
+          prompt.name
+        ]; /* if you have two prompts with the same name, then the second prompt will overwrite the first */
       return {
         ...prompt,
         type: (prev: any) =>
@@ -41,6 +44,7 @@ export async function getAnswersFromCLI(
     nonInteractive = false;
     return prompt;
   });
+
   if (nonInteractive) return flags;
   const promptAnswers = await prompts(questionsToAsk);
   return { ...promptAnswers, ...flags };

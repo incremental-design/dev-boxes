@@ -1,11 +1,12 @@
+import { resolve } from 'path';
 import {
   buildFromDockerfile,
   startContainer,
   getAnswersFromCLI,
   streamContainerOutput,
   print,
+  createLocalVolume,
 } from './utils';
-import { resolve } from 'path';
 import { quickstartFactory } from './utils/quickstartFactory';
 
 const quickstartName = __dirname
@@ -25,6 +26,11 @@ const quickstart = quickstartFactory<{
       'box-base',
       'incrementaldesign'
     );
+    const v = await createLocalVolume(options.test, {
+      MyInValIdKeY: 'abc123',
+      myvalidkey: 'abc123',
+      'design.incremental': 'abc123',
+    });
     const c = await startContainer(dockerInstance, i, [
       { remote: 8080, local: options.test2 },
     ]);
@@ -41,7 +47,11 @@ const quickstart = quickstartFactory<{
   },
   async () => {
     const answers = await getAnswersFromCLI([
-      { type: 'text', name: 'test', message: "what's your favorite color" },
+      {
+        type: 'text',
+        name: 'test',
+        message: 'name the volume this container should use to store data',
+      },
       {
         type: 'number',
         name: 'test2',
