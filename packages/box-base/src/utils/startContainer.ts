@@ -1,4 +1,6 @@
 import Docker, { Container } from 'dockerode';
+import { checkPortStatus, findAPortNotInUse } from 'portscanner';
+import prompts from 'prompts';
 
 /**
  *
@@ -40,7 +42,7 @@ export async function startContainer(
 
   // if port in use, offer to use next available port in interactive mode, if non interactive mode, just console warn and use next available port. be sure to remap ports accordingly.
 
-  // need to return the newly created container
+  const localhost = '127.0.0.1'; // we might need to expand this later on
 
   const localToForward = new Map<
     number,
@@ -65,7 +67,57 @@ export async function startContainer(
           `port ${port.remote} is exposed as ${exposedProtocol}, but you specified ${port.protocol}.`
         );
       }
-      localToForward.set(port.local || port.remote, {
+      const getLocal = async () => {
+        const isTTY = process.stdout.isTTY;
+
+        const confirmPort = async (portToCheck: number): Promise<number> => {
+          const status = await new Promise<boolean>((resolve, reject) => {
+            checkPortStatus(portToCheck, localhost, (error, status) => {
+              if (error) reject(error);
+              resolve(status === 'closed');
+            });
+          });
+          if (status) return portToCheck;
+          const nextAvailablePort = await new Promise<number>(
+            (resolve, reject) => {
+              findAPortNotInUse(
+                portToCheck === 65535 ? 0 : portToCheck + 1,
+                65535,
+                localhost,
+                (error, port) => {
+                  if (error) reject(error);
+                  resolve(port);
+                }
+              );
+            }
+          );
+
+          if (!isTTY) {
+            console.warn(
+              `Port ${portToCheck} on ${localhost} is in use. Forwarding ${port.remote} to port ${nextAvailablePort} instead.`
+            );
+            return nextAvailablePort;
+          } else {
+            const response = await prompts([
+              {
+                type: 'confirm',
+                name: 'useNextAvailablePort',
+                message: `Port ${portToCheck} on ${localhost} is in use. Forward port ${port.remote} on the container to port ${nextAvailablePort} on ${localhost} instead?`,
+              },
+              {
+                type: (prev) => (prev === false ? 'number' : null),
+                name: 'checkPort',
+                message: 'Enter the port you want to use:',
+              },
+            ]);
+            if (response.useNextAvailablePort) return nextAvailablePort;
+            return await confirmPort(response.checkPort);
+          }
+        };
+        return confirmPort(port.local || port.remote);
+      };
+
+      localToForward.set(await getLocal(), {
         remote: port.remote,
         protocol: exposedProtocol,
       });
@@ -90,7 +142,7 @@ export async function startContainer(
       const remoteProtocol = p[1].protocol;
       portBindings[`${remotePort}/${remoteProtocol}`] = [
         {
-          HostIp: '127.0.0.1', // we MIGHT need to swap this out for something more modular later on depending on how we run docker compose
+          HostIp: localhost,
           HostPort: `${local}`,
         },
       ];
