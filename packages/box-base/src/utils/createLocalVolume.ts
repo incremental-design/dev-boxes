@@ -43,7 +43,6 @@ export async function createLocalVolume(
     };
 
     const { Volumes } = await di.listVolumes();
-    console.log(Volumes);
     const allVolumes: { [volumeName: string]: string } = {};
     Volumes.map((v) => ({ name: v.Name, driver: v.Driver })).forEach((v) => {
       allVolumes[v.name] = v.driver;
@@ -110,7 +109,7 @@ export async function createLocalVolume(
         const { alternateLabel } = await prompts([
           {
             name: 'alternateLabel',
-            message: `${message}. Please choose a different label.`,
+            message: `${message}. Please choose a different label. Labels can only contain lowercase letters, numbers, '.' and '-'`,
             type: 'text',
           },
         ]);
@@ -122,12 +121,39 @@ export async function createLocalVolume(
       }
       return label;
     };
+
     const l: { [key: string]: string } = {};
+    const dedupeLabel = async (label: {
+      key: string;
+      value: string;
+    }): Promise<{ key: string; value: string }> => {
+      if (!Object.keys(l).includes(label.key)) return label;
+      if (isTTY) {
+        const { alternateLabel } = await prompts([
+          {
+            name: 'alternateLabel',
+            type: 'text',
+            message: `'${label.key}' is already in use. Choose a different label. Labels can only contain lowercase letters, numbers, '.' and '-'`,
+          },
+        ]);
+        const v = await validateLabel({
+          key: alternateLabel,
+          value: label.value,
+        });
+        return dedupeLabel(v);
+      }
+      throw new Error(
+        `'${label.key}' has already been set to '${
+          l[label.key]
+        }'. Cannot change it to '${label.value}'.`
+      );
+    };
     for (const o of labelObjects) {
       const validated = await validateLabel(
         o
       ); /* we HAVE to use await inside this for loop to sequence the prompts in the CLI */
-      l[validated.key] = validated.value;
+      const deduped = await dedupeLabel(validated);
+      l[deduped.key] = deduped.value;
     }
     return l;
   })();
