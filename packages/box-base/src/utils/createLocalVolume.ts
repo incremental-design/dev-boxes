@@ -1,5 +1,4 @@
 import Docker, { Volume } from 'dockerode';
-import { text } from 'stream/consumers';
 import prompts from 'prompts';
 import { isDockerReady, isLabelValid } from '.';
 

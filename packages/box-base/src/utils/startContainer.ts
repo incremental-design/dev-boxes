@@ -40,9 +40,8 @@ export async function startContainer(
   const { Id, Config } = await image.inspect();
   const { ExposedPorts, Volumes } = Config;
 
-  // if port in use, offer to use next available port in interactive mode, if non interactive mode, just console warn and use next available port. be sure to remap ports accordingly.
-
   const localhost = '127.0.0.1'; // we might need to expand this later on
+  const isTTY = process.stdout.isTTY;
 
   const localToForward = new Map<
     number,
@@ -55,6 +54,11 @@ export async function startContainer(
     e.forEach((p) => exposed.set(parseInt(p[0]), p[1]));
 
     for (const port of ports) {
+      if (port.remote > 65535)
+        throw new Error(
+          `Port ${port.remote} does not exist on the container, because ports are numbered from 0 - 65535`
+        );
+
       const exposedProtocol = exposed.get(port.remote);
       if (!exposedProtocol)
         throw new Error(
@@ -68,9 +72,28 @@ export async function startContainer(
         );
       }
       const getLocal = async () => {
-        const isTTY = process.stdout.isTTY;
+        const confirmPort = async (
+          portToCheck: number,
+          remote: number
+        ): Promise<number> => {
+          if (portToCheck > 65535) {
+            if (!isTTY)
+              throw new Error(
+                `Local port ${portToCheck} does not exist, because ports are numbered from 1 to 65535. It is impossible to forward container port to it.`
+              );
+            const { validPort } = await prompts({
+              type: 'number',
+              name: 'validPort',
+              message: `Port number ${portToCheck} is out of range. Choose a port between 0 and 65535`,
+              validate: (value) => {
+                if (value < 0) return 'Port number must be >= 0';
+                if (value > 65535) return 'Port number must be <= 65535';
+                return true;
+              },
+            });
+            return confirmPort(validPort, remote);
+          }
 
-        const confirmPort = async (portToCheck: number): Promise<number> => {
           const status = await new Promise<boolean>((resolve, reject) => {
             checkPortStatus(portToCheck, localhost, (error, status) => {
               if (error) reject(error);
@@ -111,10 +134,10 @@ export async function startContainer(
               },
             ]);
             if (response.useNextAvailablePort) return nextAvailablePort;
-            return await confirmPort(response.checkPort);
+            return await confirmPort(response.checkPort, port.remote);
           }
         };
-        return confirmPort(port.local || port.remote);
+        return confirmPort(port.local || port.remote, port.remote);
       };
 
       localToForward.set(await getLocal(), {
@@ -122,8 +145,6 @@ export async function startContainer(
         protocol: exposedProtocol,
       });
     }
-
-    // todo: bind volumes
   }
 
   const makePortBindings = () => {
@@ -149,6 +170,8 @@ export async function startContainer(
       return { PortBindings: portBindings };
     }
   };
+
+  // todo: bind volumes
 
   const container = await dockerInstance.createContainer({
     /* pretty much ALL of the configuration happens in this object. see: https://docs.docker.com/engine/api/v1.37/#operation/ContainerCreate */
