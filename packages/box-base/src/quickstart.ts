@@ -20,18 +20,22 @@ const quickstart = quickstartFactory<{
   test3: boolean;
 }>(
   quickstartName,
-  async (dockerInstance, options) => {
+  async (options, dockerInstance) => {
     const i = await buildFromDockerfile(
       dockerInstance,
       resolve(__dirname, '../Dockerfile'),
       'box-base',
       'incrementaldesign'
     );
-    const v = await createLocalVolume(options.test, {
-      MyInValIdKeY: 'abc123',
-      myValidkey: 'abc123',
-      'design.incremental': 'abc123',
-    });
+    const v = await createLocalVolume(
+      options.test,
+      {
+        MyInValIdKeY: 'abc123',
+        myValidkey: 'abc123',
+        'design.incremental': 'abc123',
+      },
+      dockerInstance
+    );
     const c = await startContainer(
       dockerInstance,
       i,

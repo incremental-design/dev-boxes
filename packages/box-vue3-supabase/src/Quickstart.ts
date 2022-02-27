@@ -27,7 +27,7 @@ const quickstart = quickstartFactory<{
   /* your options here */
 }>(
   quickstartName,
-  async (dockerInstance: Docker, options) => {
+  async (options, dockerInstance: Docker) => {
     /* do something with dockerInstance and options here */
   },
   async () => {

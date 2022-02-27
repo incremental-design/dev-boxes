@@ -52,12 +52,12 @@ import { isDockerReady } from '.';
  */
 export function quickstartFactory<options>(
   name: string,
-  dockerActions: (d: Docker, o: options) => Promise<void>,
+  dockerActions: (o: options, d: Docker) => Promise<void>,
   prompts: () => Promise<options>
-): (d?: Docker, o?: options) => Promise<void> {
+): (o?: options, d?: Docker) => Promise<void> {
   return async function quickstart(
-    dockerInstance?: Docker,
-    o?: options
+    o?: options,
+    dockerInstance?: Docker
   ): Promise<void> {
     if (await !isDockerReady())
       throw new Error('Docker is either not installed or not running');
@@ -73,7 +73,7 @@ export function quickstartFactory<options>(
       const optionsObject =
         o ||
         (await prompts()); /* only run prompts if options object not provided */
-      await dockerActions(di, optionsObject);
+      await dockerActions(optionsObject, di);
     } catch (e) {
       console.error(e);
       console.error(name + ' failed.');
