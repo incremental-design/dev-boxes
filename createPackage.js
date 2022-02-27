@@ -127,6 +127,21 @@ const quickstart = quickstartFactory<{ /* your options here */ }>(
   quickstartName,
   async ( options, dockerInstance: Docker ) => {
     /* do something with dockerInstance and options here */
+
+    return {
+      destroy: async () => {
+        // destroy your containers, and prune your images, volumes, networks here.
+        return {destroyed: true};
+      },
+      items: {  
+        // populate this with the items that this function created or used.
+        images: [], 
+        containers: [],
+        volumes: [],
+        binds: [],
+        networks: [],
+      }
+    }
   },
   async () => {
     /* write a CLI prompt to ask user for options here */

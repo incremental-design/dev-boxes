@@ -62,6 +62,19 @@ const quickstart = quickstartFactory<{
       if (count > 10) await detach();
     }
     console.log('stream closed!');
+    return {
+      destroy: async () => {
+        // todo: actually destroy the things
+        return { destroyed: true };
+      },
+      items: {
+        images: [i],
+        containers: [c],
+        volumes: [v],
+        binds: [],
+        networks: [],
+      },
+    };
   },
   async () => {
     const answers = await getAnswersFromCLI([
