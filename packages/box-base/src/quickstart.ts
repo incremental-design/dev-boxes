@@ -1,4 +1,5 @@
 import { resolve } from 'path';
+import path from 'path/posix';
 import {
   buildFromDockerfile,
   startContainer,
@@ -31,9 +32,22 @@ const quickstart = quickstartFactory<{
       myValidkey: 'abc123',
       'design.incremental': 'abc123',
     });
-    const c = await startContainer(dockerInstance, i, [
-      { remote: 8080, local: options.test2 },
-    ]);
+    const c = await startContainer(
+      dockerInstance,
+      i,
+      [{ remote: 8080, local: options.test2 }],
+      [
+        {
+          mountPoint: '/',
+          volume: path.resolve(__dirname, '../../'),
+          readonly: true,
+        },
+        {
+          mountPoint: 'path/to/volume',
+          volume: v,
+        },
+      ]
+    );
     await new Promise<void>((resolve) => setTimeout(resolve, 5000));
     const { stdout, stderr, detach } = await streamContainerOutput(c, true);
 

@@ -1,4 +1,7 @@
 import Docker, { Container } from 'dockerode';
+import { Stats } from 'fs';
+import { stat } from 'fs/promises';
+import path from 'path/posix';
 import { checkPortStatus, findAPortNotInUse } from 'portscanner';
 import prompts from 'prompts';
 
@@ -17,8 +20,9 @@ import prompts from 'prompts';
  * - protocol is either 'tcp' or 'udp'. If you don't know what this setting means, just leave it blank, and it will default to whatever protocol the image exposed.
  *
  * @param volumes: an array of volumes to mount, where:
- * - mountPoint is the location in which to mount the volume in the container
- * - volume {@link Docker.Volume} object. or a path to a directory on your computer that you would like to bind mount
+ * - mountPoint is the absolute path to the location in which to mount the volume in the container. This path must be a posix path (i.e. it uses '/' as the directory separator). It cannot be '/', because that would clobber the root file system.
+ * - volume {@link Docker.Volume} object. or the absolute path to a directory on your computer that you would like to bind mount
+ * - readonly is a boolean that determines whether the volume should be read-only or writable. Set it to 'true' for read only. Defaults to 'false' for writable.
  *
  * @returns a promise to get the {@link Docker.Container} that was created.
  *
@@ -34,7 +38,11 @@ export async function startContainer(
       | 'udp'
       | 'sctp' /* see: https://docs.docker.com/engine/api/v1.37/#operation/ContainerCreate */;
   }>,
-  volumes?: Array<{ mountPoint: string; volume: string | Docker.Volume }>,
+  volumes?: Array<{
+    mountPoint: string;
+    volume: string | Docker.Volume;
+    readonly?: boolean;
+  }>,
   environmentVariables?: { [key: string]: string }
 ): Promise<Container> {
   const { Id, Config } = await image.inspect();
@@ -171,6 +179,270 @@ export async function startContainer(
     }
   };
 
+  const makeMounts = async () => {
+    if (!volumes) return {};
+
+    const va: /* (v)olume(a)rray */ Array<{
+      mountPoint: string;
+      volume: string | Docker.Volume;
+      readonly?: boolean;
+    }> = [];
+
+    const promptForAlternateMount = async (
+      message: string,
+      mountPoint: string,
+      volume: string | Docker.Volume,
+      readonly?: boolean
+    ) => {
+      const { alternateMountPoint } = await prompts({
+        type: 'text',
+        name: 'alternateMountPoint',
+        message,
+        validate: (value) => {
+          const { root, dir, base } = path.posix.parse(value);
+          if (!root)
+            return `you must choose an absolute path (i.e. something that starts with '/')`;
+          if (root === dir && base === '')
+            return `you must choose a location that is a subdirectory of '/'`;
+          return true;
+        },
+      });
+      return validateMountPoint(alternateMountPoint, volume, readonly);
+    };
+
+    const validateMountPoint = async (
+      mountPoint: string,
+      volume: string | Docker.Volume,
+      readonly?: boolean
+    ): Promise<{
+      mountPoint: string;
+      volume: string | Docker.Volume;
+      readonly?: boolean;
+    }> => {
+      if (mountPoint === '/') {
+        if (isTTY) {
+          return promptForAlternateMount(
+            `Cannot mount ${
+              typeof volume === 'string' ? 'local directory' : 'docker volume'
+            } '${
+              typeof volume === 'string' ? volume : volume.name
+            }' to container's '/' because it would clobber the entire container filesystem. Choose a different absolute path on the container:`,
+            mountPoint,
+            volume,
+            readonly
+          );
+        } else
+          throw new Error(
+            `Cannot mount ${
+              typeof volume === 'string' ? 'local directory' : 'docker volume'
+            } '${
+              typeof volume === 'string' ? volume : volume.name
+            }' to container's '/' because it would clobber the entire container filesystem.`
+          );
+      }
+
+      if (mountPoint.slice(0, 1) !== '/') {
+        if (isTTY) {
+          return promptForAlternateMount(
+            `Cannot mount ${
+              typeof volume === 'string' ? 'local directory' : 'docker volume'
+            } '${
+              typeof volume === 'string' ? volume : volume.name
+            }' to container because ${mountPoint} is a relative path. Choose an absolute path on the container:`,
+            mountPoint,
+            volume,
+            readonly
+          );
+        } else
+          throw new Error(
+            `Cannot mount ${
+              typeof volume === 'string' ? 'local directory' : 'docker volume'
+            } '${
+              typeof volume === 'string' ? volume : volume.name
+            }' to container because '${mountPoint}' is not an absolute path.`
+          );
+      }
+      return { mountPoint, volume, readonly };
+    };
+
+    const dedupeMountPoint = async (
+      mountPoint: string,
+      volume: string | Docker.Volume,
+      readonly?: boolean
+    ): Promise<{
+      mountPoint: string;
+      volume: string | Docker.Volume;
+      readonly?: boolean;
+    }> => {
+      const mountPoints = new Map<string, string | Docker.Volume>();
+      va.forEach((v) => mountPoints.set(v.mountPoint, v.volume));
+      if (mountPoints.has(mountPoint)) {
+        if (isTTY) {
+          return promptForAlternateMount(
+            `Cannot mount ${
+              typeof volume === 'string' ? 'local directory' : 'docker volume'
+            } '${
+              typeof volume === 'string' ? volume : volume.name
+            }' to container's '${mountPoint}' because ${
+              typeof mountPoints.get(mountPoint) === 'string'
+                ? 'local directory'
+                : 'docker volume'
+            } '${
+              typeof mountPoints.get(mountPoint) === 'string'
+                ? mountPoints.get(mountPoint)
+                : (mountPoints.get(mountPoint) as Docker.Volume).name
+            }' is already mounted there. Choose a different absolute path on the container:`,
+            mountPoint,
+            volume,
+            readonly
+          );
+        } else
+          throw new Error(
+            `Cannot mount ${
+              typeof volume === 'string' ? 'local directory' : 'docker volume'
+            } '${
+              typeof volume === 'string' ? volume : volume.name
+            }' to container's '/' because it would clobber the entire container filesystem.`
+          );
+      }
+      return { mountPoint, volume, readonly };
+    };
+
+    for (const volume of volumes) {
+      const validated = await validateMountPoint(
+        volume.mountPoint,
+        volume.volume,
+        volume.readonly
+      ); /* we NEED to await inside the for loop in order to sequence the prompts correctly */
+      const deduped = await dedupeMountPoint(
+        validated.mountPoint,
+        validated.volume,
+        validated.readonly
+      );
+      va.push(deduped);
+    }
+
+    const bm /* (b)ind(m)ounts */ = va.filter(
+      (v) => typeof v.volume === 'string'
+    ) as Array<{
+      mountPoint: string;
+      volume: string;
+      readonly?: boolean;
+    }>;
+    const vm /* (v)olume(m)ounts */ = va.filter(
+      (v) => typeof v.volume !== 'string'
+    ) as Array<{
+      mountPoint: string;
+      volume: Docker.Volume;
+      readonly?: boolean;
+    }>;
+
+    const validateBindMount = async (
+      mountPoint: string,
+      volume: string,
+      readonly?: boolean
+    ): Promise<{
+      mountPoint: string;
+      volume: string;
+      readonly?: boolean;
+    }> => {
+      const chooseAlternateDir = async (message: string) => {
+        const { alternateVolume } = await prompts({
+          name: 'alternateVolume',
+          type: 'text',
+          message,
+          validate: (value) => {
+            const { root, dir } = path.parse(value);
+            if (!root)
+              return `Path must be absolute. (i.e. it must start with '${path.sep}')`;
+            if (root === dir)
+              return `Don't bind mount the root of your filesystem. That's a recipe for disaster.`;
+            return value;
+          },
+        });
+        return validateBindMount(mountPoint, alternateVolume, readonly);
+      };
+
+      const { root, dir, base } = path.parse(volume);
+      if (!root) {
+        if (isTTY) {
+          return chooseAlternateDir(
+            `'${volume}' isn't an absolute path. Cannot bind it to container's '${mountPoint}'. Choose an absolute path to a folder on your computer:`
+          );
+        } else
+          throw new Error(
+            `'${volume}' isn't an absolute path. Cannot bind it to container's '${mountPoint}'`
+          );
+      }
+      if (root === dir && base === '') {
+        if (isTTY) {
+          return chooseAlternateDir(
+            `'${volume}' is the root of your filesystem. Do not mount your ENTIRE filesystem into a container. That's a VERY bad idea. Choose an absolute path to a folder instead:`
+          );
+        }
+      }
+      let stats: Stats;
+      try {
+        stats = await stat(volume);
+      } catch (e) {
+        return chooseAlternateDir(
+          `'${volume}' either doesn't exist on your local filesystem, or cannot be accessed. Please choose a folder that actually exists:`
+        );
+      }
+      if (!stats.isDirectory()) {
+        return chooseAlternateDir(
+          `'${volume}' is not a directory. It cannot be bound to the container. Please choose a folder on your filesystem:`
+        );
+      }
+      return {
+        mountPoint,
+        volume,
+        readonly,
+      };
+    };
+
+    const mounts: Array<{
+      Target: string;
+      Source: string;
+      Type: 'bind' | 'volume' | 'tmpfs';
+      ReadOnly: boolean;
+      Consistency:
+        | 'default'
+        | 'consistent'
+        | 'cached'
+        | 'delegated' /* we are going to use 'default' because it sounds like a sane default */;
+    }> = [];
+
+    for (const m of bm) {
+      const { mountPoint, volume, readonly } = await validateBindMount(
+        m.mountPoint,
+        m.volume,
+        m.readonly
+      );
+      mounts.push({
+        Target: mountPoint,
+        Source: volume,
+        Type: 'bind',
+        ReadOnly: readonly || false,
+        Consistency: 'default',
+      });
+    }
+
+    for (const m of vm) {
+      const { mountPoint, volume, readonly } = m;
+      const ro = readonly || false;
+      mounts.push({
+        Target: mountPoint,
+        Source: volume.name,
+        Type: 'volume',
+        ReadOnly: readonly || false,
+        Consistency: 'default',
+      });
+    }
+
+    return { Mounts: mounts };
+  };
+
   // todo: bind volumes
 
   const container = await dockerInstance.createContainer({
@@ -179,6 +451,7 @@ export async function startContainer(
     Image: Id,
     HostConfig: {
       ...makePortBindings(),
+      ...(await makeMounts()),
     },
   });
 
