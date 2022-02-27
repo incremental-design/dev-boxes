@@ -1,5 +1,6 @@
 {
   "main": "dist/Quickstart.js",
+  "types": "dist/types/Quickstart.d.ts",
   "repository": "https://github.com/incremental-design/dev-boxes",
   "license": "MIT",
   "private": false,

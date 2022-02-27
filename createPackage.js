@@ -51,6 +51,7 @@ const tsconfig = {
 const package =
 {
   "main": "dist/Quickstart.js",
+  "types": "dist/types/Quickstart.d.ts",
   "repository": "https://github.com/incremental-design/dev-boxes",
   "license": "MIT",
   "private": false,
@@ -69,7 +70,7 @@ const package =
     "build": "npx babel --root-mode upward --extensions \".ts\" src --out-dir dist --source-maps && tsc --emitDeclarationOnly",
   },
   "dependencies": {
-    "@incremental-design/box-base": "latest",
+    "@incremental.design/box-base": version,
     "dockerode": "^3.3.1",
     "docker-file-parser": "^1.0.7",
   }
@@ -110,7 +111,7 @@ See [${'`' + 'dev-boxes/README.md' + '`'}](../../README.md#contribute-to-dev-box
 /**
  * the contents of quickstart are written to `packages/<package-name>/src/quickstart.ts`
  */
-const quickstart = `import { Docker } from 'dockerode'; /* this talks to the docker API at \`/var/run/docker.sock\` see: https://www.npmjs.com/package/dockerode */
+const quickstart = `import Docker from 'dockerode'; /* this talks to the docker API at \`/var/run/docker.sock\` see: https://www.npmjs.com/package/dockerode */
 // import { parse as parseDockerFile } from 'docker-file-parser'; /* this parses dockerfiles. See: https://www.npmjs.com/package/docker-file-parser */
 import { isDockerReady, buildFromDockerfile, startContainer, quickstartFactory, getAnswersFromCLI, addToKeychain, retrieveFromKeychain, makePasswordPrompt, generatePasswords } from '@incremental.design/box-base';
 /**
@@ -120,7 +121,7 @@ import { isDockerReady, buildFromDockerfile, startContainer, quickstartFactory, 
  * @returns dockerInstance - the same instance of the {@link Docker} class that was passed in, or if no instance was passed in, a new instance.
  */
 
- const quickstartName = __dirname.split('/').slice(0, -2).pop(); /* i.e. '/path/to/packages/${packageName}/src/quickstart.ts' -> ['','path','to','packages','${packageName}','src','quickstart.ts'] -> ['','path','to','packages','${packageName}'] -> '${packageName}' */
+ const quickstartName = __dirname.split('/').slice(0, -2).pop() as string; /* i.e. '/path/to/packages/${packageName}/src/quickstart.ts' -> ['','path','to','packages','${packageName}','src','quickstart.ts'] -> ['','path','to','packages','${packageName}'] -> '${packageName}' */
 
 const quickstart = quickstartFactory<{ /* your options here */ }>(
   quickstartName,
@@ -130,7 +131,7 @@ const quickstart = quickstartFactory<{ /* your options here */ }>(
   async () => {
     /* write a CLI prompt to ask user for options here */
     return { /* the answers from the CLI prompt, in the format of options */ }
-  };
+  },
 );
 export default quickstart;
 `
