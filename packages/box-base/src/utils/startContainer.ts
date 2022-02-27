@@ -248,7 +248,7 @@ export async function startContainer(
               typeof volume === 'string' ? 'local directory' : 'docker volume'
             } '${
               typeof volume === 'string' ? volume : volume.name
-            }' to container because ${mountPoint} is a relative path. Choose an absolute path on the container:`,
+            }' to container because '${mountPoint}' is a relative path. Choose an absolute path on the container:`,
             mountPoint,
             volume,
             readonly
