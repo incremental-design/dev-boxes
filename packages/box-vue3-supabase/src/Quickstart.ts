@@ -54,13 +54,15 @@ const quickstartName = __dirname
 const quickstart = quickstartFactory<AllOptions>(
   quickstartName,
   async (options, dockerInstance: Docker) => {
+    /* the idea is to load the compose file, modify it with JS, dump it back out to yaml, and then call the compose API */
+
     const suffix = crypto
       .randomBytes(4)
       .toString(
         'hex'
       ); /* append the suffix to all container names so that if you start several containers, you can keep track of which ones are grouped together */
 
-    const dockerComposeYml = (async () => {
+    const dockerCompose = (async () => {
       const url =
         'https://raw.githubusercontent.com/supabase/supabase/master/docker/docker-compose.yml'; /* this HAS to be tested because it will always download the freshest, latest copy from github */
       const { body } = await fetch(url);
@@ -80,6 +82,7 @@ const quickstart = quickstartFactory<AllOptions>(
         );
         s = await readFile(fallback, { encoding: 'utf-8' });
       }
+      return yaml.load(s);
     })();
 
     return {
