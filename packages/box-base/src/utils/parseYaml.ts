@@ -50,7 +50,7 @@ export function parseYaml(yamlString: string): {
 
   const addToEnvironmentVariables = (key: string) => {
     if (!environmentVariables.hasOwnProperty(key))
-      environmentVariables[key] = undefined;
+      environmentVariables[key] = key;
   };
 
   const traversed = new WeakMap();
@@ -96,7 +96,7 @@ export function parseYaml(yamlString: string): {
       ) {
         const envVar = value.slice(2, -1);
         c[key] = envVar;
-        addToEnvironmentVariables(key);
+        addToEnvironmentVariables(envVar);
         Object.defineProperty(c, key, {
           get: function () {
             return environmentVariables[key];

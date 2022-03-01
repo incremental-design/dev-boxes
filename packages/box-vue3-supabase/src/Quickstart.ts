@@ -54,7 +54,7 @@ const quickstartName = __dirname
  *
  * @typeParam AllOptions - the options for the docker volume and all of the containers used in this quickstart.
  */
-const quickstart = quickstartFactory<{}>(
+const quickstart = quickstartFactory<AllOptions>(
   quickstartName,
   async (options, dockerInstance: Docker) => {
     /* the idea is to load the compose file, modify it with JS, dump it back out to yaml, and then call the compose API */
@@ -66,11 +66,21 @@ const quickstart = quickstartFactory<{}>(
       ); /* append the suffix to all container names so that if you start several containers, you can keep track of which ones are grouped together */
 
     const { environmentVariables, yamlObject } = await getDockerCompose();
-    const defaults = await getDefaultEnvironmentVariables();
-    console.log(defaults);
-    // for (const d of defaults) {
-    //   environmentVariables.hasOwnProperty(d[0]);
-    // }
+
+    if (true /* options === 'devDefault' */) {
+      const defaults = await getDefaultEnvironmentVariables();
+      Object.entries(environmentVariables).forEach((entry) => {
+        const [k, v] = entry;
+        if (defaults.hasOwnProperty(v))
+          /* because the values of the env variables map to the defaults */
+          environmentVariables[k] =
+            defaults[
+              v
+            ]; /* this WILL omit defaults that aren't present in the environment variables ... because how would we apply them to the yamlObject? */
+      });
+    }
+
+    console.log(JSON.stringify(yamlObject, null, 2));
 
     return {
       destroy: async () => {
@@ -90,7 +100,7 @@ const quickstart = quickstartFactory<{}>(
     /* write a CLI prompt to ask user for options here */
     return {
       /* the answers from the CLI prompt, in the format of options */
-    };
+    } as AllOptions;
   }
 );
 export default quickstart;
