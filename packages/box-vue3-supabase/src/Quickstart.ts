@@ -67,7 +67,8 @@ const quickstart = quickstartFactory<AllOptions>(
 
     const { environmentVariables, yamlObject } = await getDockerCompose();
 
-    if (true /* options === 'devDefault' */) {
+    console.log(options);
+    if (options === 'devDefault') {
       const defaults = await getDefaultEnvironmentVariables();
       Object.entries(environmentVariables).forEach((entry) => {
         const [k, v] = entry;
@@ -98,16 +99,56 @@ const quickstart = quickstartFactory<AllOptions>(
   },
   async () => {
     /* write a CLI prompt to ask user for options here */
-    return {
-      /* the answers from the CLI prompt, in the format of options */
-    } as AllOptions;
+    const { preset } = await getAnswersFromCLI([
+      {
+        name: 'preset',
+        type: 'select',
+        message: 'Use default settings?',
+        choices: [
+          {
+            title: 'dev',
+            description:
+              '\nDefault settings for development:\n- Uses your local filesystem as the storage location.\n- Uses a single Postgres instance.\n- Starts Supabase studio.\n- Does NOT secure supabase with passwords and certificates.\n',
+          },
+          {
+            title: 'prod',
+            description:
+              '\nDefault settings for production:\n- Uses an S3 provider of your choice as the storage location.\n- Uses a Postgres cluster of your choice as the database location.\n- Secures supabase with passwords and certificates.\n- Does NOT start Supabase studio.\n- Bring your own S3 storage and Postgres cluster.\n',
+          },
+          {
+            title: 'custom',
+            description:
+              '\nCustomize all of the cluster settings however you want.',
+          },
+        ],
+        initial: 0,
+      },
+    ]);
+
+    if (![0, 1, 'dev', 'development', 'prod', 'production'].includes(preset)) {
+      console.error(
+        `--preset '${preset}' is not a valid option. It should be either 'dev' for the development preset or 'prod' for the production preset.`
+      );
+      process.exit(1);
+    }
+
+    return [0, 'dev', 'development'].includes(preset)
+      ? 'devDefault'
+      : [1, 'prod', 'production'].includes(preset)
+      ? 'prodDefault'
+      : ({
+          /* the answers from the CLI prompt, in the format of options */
+        } as AllOptions);
   }
 );
 export default quickstart;
 
 /**
- * 'devDefault' means use sane defaults for a self-hosted dev environment
- * 'prodDefault' means use sane defaults for a production environment
+ * @typeParam 'devDefault' - use sane defaults for a self-hosted dev environment
+ *
+ * @typeParam 'prodDefault' - use sane defaults for a production environment
+ *
+ * @typeParam
  */
 type AllOptions =
   | 'devDefault'
