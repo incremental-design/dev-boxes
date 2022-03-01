@@ -47,5 +47,5 @@ export async function getAnswersFromCLI(
 
   if (nonInteractive) return flags;
   const promptAnswers = await prompts(questionsToAsk);
-  return { ...promptAnswers, ...flags };
+  return { ...flags, ...promptAnswers };
 }
