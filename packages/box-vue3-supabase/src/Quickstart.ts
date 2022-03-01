@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { fetch } from 'undici';
+import { inspect } from 'util';
 import { resolve } from 'path';
 import { readFile } from 'fs/promises';
 import yaml from 'js-yaml';
@@ -12,11 +13,14 @@ import {
   buildFromDockerfile,
   startContainer,
   quickstartFactory,
+  parseYaml,
   getAnswersFromCLI,
   addToKeychain,
   retrieveFromKeychain,
   makePasswordPrompt,
   generatePasswords,
+  DefinitionsVolume,
+  DefinitionsService,
 } from '@incremental.design/box-base';
 /**
  *
@@ -51,7 +55,7 @@ const quickstartName = __dirname
  *
  * @typeParam AllOptions - the options for the docker volume and all of the containers used in this quickstart.
  */
-const quickstart = quickstartFactory<AllOptions>(
+const quickstart = quickstartFactory<{}>(
   quickstartName,
   async (options, dockerInstance: Docker) => {
     /* the idea is to load the compose file, modify it with JS, dump it back out to yaml, and then call the compose API */
@@ -62,7 +66,7 @@ const quickstart = quickstartFactory<AllOptions>(
         'hex'
       ); /* append the suffix to all container names so that if you start several containers, you can keep track of which ones are grouped together */
 
-    const dockerCompose = (async () => {
+    const dockerCompose = await (async () => {
       const url =
         'https://raw.githubusercontent.com/supabase/supabase/master/docker/docker-compose.yml'; /* this HAS to be tested because it will always download the freshest, latest copy from github */
       const { body } = await fetch(url);
@@ -82,8 +86,14 @@ const quickstart = quickstartFactory<AllOptions>(
         );
         s = await readFile(fallback, { encoding: 'utf-8' });
       }
-      return yaml.load(s);
+      // const yo /* (y)aml(o)bject */ = yaml.load(s) as { [key: string]: any };
+      // return yaml.load(s) as {
+      //   services: { [serviceName: string]: DefinitionsService };
+      // };
+      parseYaml(s);
     })();
+
+    console.log(inspect(dockerCompose, false, 5, true));
 
     return {
       destroy: async () => {
