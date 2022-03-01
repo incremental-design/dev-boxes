@@ -3,7 +3,6 @@ import { fetch } from 'undici';
 import { inspect } from 'util';
 import { resolve } from 'path';
 import { readFile } from 'fs/promises';
-import yaml from 'js-yaml';
 
 import Docker from 'dockerode'; /* this talks to the docker API at `/var/run/docker.sock` see: https://www.npmjs.com/package/dockerode */
 // import { parse as parseDockerFile } from 'docker-file-parser'; /* this parses dockerfiles. See: https://www.npmjs.com/package/docker-file-parser */
@@ -66,34 +65,12 @@ const quickstart = quickstartFactory<{}>(
         'hex'
       ); /* append the suffix to all container names so that if you start several containers, you can keep track of which ones are grouped together */
 
-    const dockerCompose = await (async () => {
-      const url =
-        'https://raw.githubusercontent.com/supabase/supabase/master/docker/docker-compose.yml'; /* this HAS to be tested because it will always download the freshest, latest copy from github */
-      const { body } = await fetch(url);
-      let s = '';
-      if (body)
-        for await (const chunk of body) {
-          s += Buffer.from(chunk).toString('utf-8');
-        }
-      if (
-        s ===
-        '' /* which means that body was null, and therefore 's' never got filled up */
-      ) {
-        const fallback = resolve(__dirname, 'docker-compose.yml');
-
-        console.error(
-          `Cannot find latest supabase docker-compose.yml at ${url} ... using older version at ${fallback} instead.`
-        );
-        s = await readFile(fallback, { encoding: 'utf-8' });
-      }
-      // const yo /* (y)aml(o)bject */ = yaml.load(s) as { [key: string]: any };
-      // return yaml.load(s) as {
-      //   services: { [serviceName: string]: DefinitionsService };
-      // };
-      parseYaml(s);
-    })();
-
-    console.log(inspect(dockerCompose, false, 5, true));
+    const { environmentVariables, yamlObject } = await getDockerCompose();
+    const defaults = await getDefaultEnvironmentVariables();
+    console.log(defaults);
+    // for (const d of defaults) {
+    //   environmentVariables.hasOwnProperty(d[0]);
+    // }
 
     return {
       destroy: async () => {
@@ -152,3 +129,67 @@ interface GoTrueOptions {}
 interface StudioOptions {}
 interface BoxBaseOptions {}
 interface KongOptions {}
+
+async function getDockerCompose() {
+  const url =
+    'https://raw.githubusercontent.com/supabase/supabase/master/docker/docker-compose.yml'; /* this HAS to be tested because it will always download the freshest, latest copy from github */
+  return parseYaml(await fetchBody(url, 'docker-compose.yml'));
+}
+
+async function getDefaultEnvironmentVariables() {
+  const url =
+    'https://raw.githubusercontent.com/supabase/supabase/master/docker/.env.example'; /* this HAS to be tested because it will always download the freshest, latest copy from github */
+  const ds /* (d)efault(s)tring */ = await fetchBody(url, '.env.example');
+  const da /* (d)efault(a)rray */ = ds
+    .split('\n')
+    .filter((line) => line.match(/(^[^#].+?=.*$)/))
+    .map((line) => {
+      const splitAt = line.indexOf('=');
+      return [
+        line.slice(0, splitAt) as string,
+        line.slice(splitAt + 1 /* +1 to get rid of the '='*/),
+      ];
+    })
+    .map((keyValue) => {
+      if (keyValue[1] === 'true') return [keyValue[0], true];
+      if (keyValue[1] === 'false') return [keyValue[0], false];
+      if (keyValue[1] === 'undefined') return [keyValue[0], undefined];
+      if (keyValue[1] === 'null') return [keyValue[0], null];
+      const valueNumber = parseFloat(keyValue[1]);
+      if (valueNumber) return [keyValue[0], valueNumber];
+      return keyValue;
+    });
+  const defaults: { [key: string]: any } = {};
+  da.forEach((d) => {
+    const [k, value] = d;
+    const key =
+      k as string; /* it will always be a string because of the previous array operators */
+    defaults[key] = value;
+  });
+  return defaults;
+}
+
+async function fetchBody(url: string, fallback: string) {
+  let s = '';
+  try {
+    const { body } = await fetch(url);
+    if (body)
+      for await (const chunk of body) {
+        s += Buffer.from(chunk).toString('utf-8');
+      }
+  } catch (e) {
+    s = ''; /* this will trip if network disconnects */
+  }
+  if (
+    s ===
+    '' /* which means that body was null, and therefore 's' never got filled up */
+  ) {
+    const f = resolve(__dirname, '..', fallback);
+
+    console.error(
+      `Cannot find latest supabase ${fallback} at ${url} ... using older version at ${f} instead.`
+    );
+    s = await readFile(f, { encoding: 'utf-8' });
+  }
+  return s;
+}
