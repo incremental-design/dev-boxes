@@ -141,15 +141,16 @@ interface BoxBaseOptions {}
 interface KongOptions {}
 
 async function getDockerCompose() {
-  const url =
-    'https://raw.githubusercontent.com/supabase/supabase/master/docker/docker-compose.yml'; /* this HAS to be tested because it will always download the freshest, latest copy from github */
-  return parseYaml(await fetchBody(url, 'docker-compose.yml'));
+  return parseYaml(
+    await readFile(resolve(__dirname, '..', 'docker-compose.yml'), 'utf-8')
+  );
 }
 
 async function getDefaultEnvironmentVariables() {
-  const url =
-    'https://raw.githubusercontent.com/supabase/supabase/master/docker/.env.example'; /* this HAS to be tested because it will always download the freshest, latest copy from github */
-  const ds /* (d)efault(s)tring */ = await fetchBody(url, '.env.example');
+  const ds /* (d)efault(s)tring */ = await readFile(
+    resolve(__dirname, '..', '.env.example'),
+    'utf-8'
+  );
   const da /* (d)efault(a)rray */ = ds
     .split('\n')
     .filter((line) => line.match(/(^[^#].+?=.*$)/))
@@ -177,29 +178,4 @@ async function getDefaultEnvironmentVariables() {
     defaults[key] = value;
   });
   return defaults;
-}
-
-async function fetchBody(url: string, fallback: string) {
-  let s = '';
-  try {
-    const { body } = await fetch(url);
-    if (body)
-      for await (const chunk of body) {
-        s += Buffer.from(chunk).toString('utf-8');
-      }
-  } catch (e) {
-    s = ''; /* this will trip if network disconnects */
-  }
-  if (
-    s ===
-    '' /* which means that body was null, and therefore 's' never got filled up */
-  ) {
-    const f = resolve(__dirname, '..', fallback);
-
-    console.error(
-      `Cannot find latest supabase ${fallback} at ${url} ... using older version at ${f} instead.`
-    );
-    s = await readFile(f, { encoding: 'utf-8' });
-  }
-  return s;
 }
