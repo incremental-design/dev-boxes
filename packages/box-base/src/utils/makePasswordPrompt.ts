@@ -1,4 +1,5 @@
 import prompts, { PromptObject } from 'prompts';
+import camelCase from 'camelcase';
 
 import { retrieveFromKeychain, generatePasswords } from '.';
 
@@ -14,6 +15,8 @@ import { retrieveFromKeychain, generatePasswords } from '.';
  *  - the user has never set a password for the given service and account, and hasn't passed the --autoPassword flag.
  *  - the user passes the --changePassword flag into the CLI.
  * Note that these prompts DON'T ACTUALLY SET THE PASSWORD. They only store the password to set in the `newPassword${service}${account}` prompts answers object. It is up to you to actually take the password and add it to the keychain, with {@link addToKeychain}.
+ *
+ * `${service}` and `${account}` in `newPassword${service}${account}` will be camel-cased.
  */
 export async function makePasswordPrompt(
   service: string,
@@ -25,7 +28,7 @@ export async function makePasswordPrompt(
   if (password)
     return [
       {
-        name: `changePassword${service}${account}`,
+        name: camelCase(`changePassword${service}${account}`),
         message: `Your current password for ${service}: ${account} is ${password}. Do you want to change it?`,
         type: (prev: any) =>
           process.argv.includes('--changePassword')
@@ -34,7 +37,7 @@ export async function makePasswordPrompt(
         initial: false,
       },
       {
-        name: `newPassword${service}${account}`,
+        name: camelCase(`newPassword${service}${account}`),
         message: 'What is your new password?',
         type: (prev) => (prev ? 'text' : false),
         initial: np,
@@ -43,10 +46,10 @@ export async function makePasswordPrompt(
     ];
   return [
     {
-      name: `newPassword${service}${account}`,
+      name: camelCase(`newPassword${service}${account}`),
       message: `Choose a password for ${service}: ${account}`,
       type: (prev: any) =>
-        process.argv.includes('--autoPassword') ? false: 'text'
+        process.argv.includes('--autoPassword') ? false : 'text',
       initial: np,
       validate,
     },
