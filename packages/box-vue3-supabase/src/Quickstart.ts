@@ -3,6 +3,7 @@ import { fetch } from 'undici';
 import { inspect } from 'util';
 import { resolve } from 'path';
 import { readFile } from 'fs/promises';
+import { makeJWT } from './utils';
 
 import Docker from 'dockerode'; /* this talks to the docker API at `/var/run/docker.sock` see: https://www.npmjs.com/package/dockerode */
 // import { parse as parseDockerFile } from 'docker-file-parser'; /* this parses dockerfiles. See: https://www.npmjs.com/package/docker-file-parser */
