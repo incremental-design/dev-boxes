@@ -26,16 +26,14 @@ export async function makePasswordPrompt(
 ): Promise<Array<PromptObject>> {
   const password = await retrieveFromKeychain(service, account);
   const np = newPassword || generatePasswords(64, true, 1).next().value;
-  if (password)
+  const changePassword = process.argv.includes('--changePassword');
+  const autoPassword = process.argv.includes('--autoPassword');
+  if (password && changePassword && !autoPassword)
     return [
       {
         name: camelCase(`changePassword ${service}${account}`),
         message: `Your current password for ${service}: ${account} is ${password}. Do you want to change it?`,
-        type: (prev: any) =>
-          process.argv.includes('--changePassword') &&
-          !process.argv.includes('--autoPassword')
-            ? 'confirm'
-            : false /* you HAVE to pass the --changePassword flag in order to make this prompt show up */,
+        type: 'confirm' /* you HAVE to pass the --changePassword flag in order to make this prompt show up */,
         initial: false,
       },
       {
@@ -46,16 +44,18 @@ export async function makePasswordPrompt(
         validate,
       },
     ];
-  return [
-    {
-      name: camelCase(`newPassword ${service}${account}`),
-      message: `Choose a password for ${service}: ${account}`,
-      type: (prev: any) =>
-        process.argv.includes('--autoPassword') ? false : 'text',
-      initial: np,
-      validate,
-    },
-  ];
+  if (!password && !autoPassword)
+    return [
+      {
+        name: camelCase(`newPassword ${service}${account}`),
+        message: `Choose a password for ${service}: ${account}`,
+        type: (prev: any) =>
+          process.argv.includes('--autoPassword') ? false : 'text',
+        initial: np,
+        validate,
+      },
+    ];
+  return [];
 }
 
 function validate(password: string) {
