@@ -21,7 +21,7 @@ export async function makePasswordPrompt(
   newPassword?: string
 ): Promise<Array<PromptObject>> {
   const password = await retrieveFromKeychain(service, account);
-  const np = newPassword || generatePasswords(36, true, 1).next().value;
+  const np = newPassword || generatePasswords(64, true, 1).next().value;
   if (password)
     return [
       {
@@ -38,6 +38,7 @@ export async function makePasswordPrompt(
         message: 'What is your new password?',
         type: (prev) => (prev ? 'text' : false),
         initial: np,
+        validate,
       },
     ];
   return [
@@ -45,8 +46,14 @@ export async function makePasswordPrompt(
       name: `newPassword${service}${account}`,
       message: `Choose a password for ${service}: ${account}`,
       type: (prev: any) =>
-        process.argv.includes('--autoPassword') ? 'text' : false,
+        process.argv.includes('--autoPassword') ? false: 'text'
       initial: np,
+      validate,
     },
   ];
+}
+
+function validate(password: string) {
+  if (password.length >= 64) return true;
+  return 'Your password must be at least 64 characters long.';
 }
