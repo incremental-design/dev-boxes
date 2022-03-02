@@ -18,10 +18,11 @@ import {
   addToKeychain,
   retrieveFromKeychain,
   makePasswordPrompt,
-  generatePasswords,
   DefinitionsVolume,
   DefinitionsService,
+  generatePasswords,
 } from '@incremental.design/box-base';
+import { Console } from 'console';
 /**
  *
  * @param dockerInstance - an instance of the {@link Docker} class. If an instance isn't provided, then quickstart will create one for you. The idea is that you can chain quickstarts together, sharing the same docker instance among them.
@@ -69,18 +70,6 @@ const quickstart = quickstartFactory<AllOptions>(
     const { environmentVariables, yamlObject } = await getDockerCompose();
 
     console.log(options);
-    if (options === 'devDefault') {
-      const defaults = await getDefaultEnvironmentVariables();
-      Object.entries(environmentVariables).forEach((entry) => {
-        const [k, v] = entry;
-        if (defaults.hasOwnProperty(v))
-          /* because the values of the env variables map to the defaults */
-          environmentVariables[k] =
-            defaults[
-              v
-            ]; /* this WILL omit defaults that aren't present in the environment variables ... because how would we apply them to the yamlObject? */
-      });
-    }
 
     console.log(JSON.stringify(yamlObject, null, 2));
 
@@ -100,31 +89,34 @@ const quickstart = quickstartFactory<AllOptions>(
   },
   async () => {
     /* write a CLI prompt to ask user for options here */
-    const { preset } = await getAnswersFromCLI([
-      {
-        name: 'preset',
-        type: 'select',
-        message: 'Use default settings?',
-        choices: [
-          {
-            title: 'dev',
-            description:
-              '\nDefault settings for development:\n- Uses your local filesystem as the storage location.\n- Uses a single Postgres instance.\n- Starts Supabase studio.\n- Does NOT secure supabase.\n',
-          },
-          {
-            title: 'prod',
-            description:
-              '\nDefault settings for production:\n- Uses an S3 provider of your choice as the storage location.\n- Uses a Postgres cluster of your choice as the database.\n- Secures supabase with passwords and certificates.\n- Does NOT start Supabase studio.\n- Bring your own S3 storage and Postgres cluster.\n',
-          },
-          {
-            title: 'custom',
-            description:
-              '\nCustomize all of the cluster settings however you want.',
-          },
-        ],
-        initial: 0,
-      },
-    ]);
+    console.log(process.argv);
+    const { preset, newPasswordBoxVue3SupabaseJwtSecret } =
+      await getAnswersFromCLI([
+        {
+          name: 'preset',
+          type: 'select',
+          message: 'Use default settings?',
+          choices: [
+            {
+              title: 'dev',
+              description:
+                '\nDefault settings for development:\n- Uses your local filesystem as the storage location.\n- Uses a single Postgres instance.\n- Starts Supabase studio.\n- Does NOT secure supabase.\n',
+            },
+            {
+              title: 'prod',
+              description:
+                '\nDefault settings for production:\n- Uses an S3 provider of your choice as the storage location.\n- Uses a Postgres cluster of your choice as the database.\n- Secures supabase with passwords and certificates.\n- Does NOT start Supabase studio.\n- Bring your own S3 storage and Postgres cluster.\n',
+            },
+            {
+              title: 'custom',
+              description:
+                '\nCustomize all of the cluster settings however you want.',
+            },
+          ],
+          initial: 0,
+        },
+        ...(await makePasswordPrompt('box-vue3-supabase', 'JWT_SECRET')),
+      ]);
 
     if (![0, 1, 'dev', 'development', 'prod', 'production'].includes(preset)) {
       console.error(
@@ -133,38 +125,81 @@ const quickstart = quickstartFactory<AllOptions>(
       process.exit(1);
     }
 
+    const jwtSecret =
+      (await (async () => {
+        const pw = newPasswordBoxVue3SupabaseJwtSecret;
+        if (pw) await addToKeychain('box-vue3-supabase', 'JWT_SECRET', pw);
+        return pw;
+      })()) ||
+      (await retrieveFromKeychain('box-vue3-supabase', 'JWT_SECRET')) ||
+      (await (async () => {
+        const pw = generatePasswords(64, true, 1).next().value;
+        console.log(
+          `Automatically setting box-vue3-supabase JWT_SECRET to ${pw}`
+        );
+        await addToKeychain('box-vue3-supabase', 'JWT_SECRET', pw);
+        return pw;
+      })());
+
+    // if (options === 'devDefault') {
+    //   const defaults = await getDefaultEnvironmentVariables();
+    //   Object.entries(environmentVariables).forEach((entry) => {
+    //     const [k, v] = entry;
+    //     if (defaults.hasOwnProperty(v))
+    //       /* because the values of the env variables map to the defaults */
+    //       environmentVariables[k] =
+    //         defaults[
+    //           v
+    //         ]; /* this WILL omit defaults that aren't present in the environment variables ... because how would we apply them to the yamlObject? */
+    //   });
+    // }
+
     return [0, 'dev', 'development'].includes(preset)
-      ? 'devDefault'
+      ? { jwtSecret }
       : [1, 'prod', 'production'].includes(preset)
-      ? 'prodDefault'
-      : ({
+      ? { jwtSecret }
+      : {
           /* the answers from the CLI prompt, in the format of options */
-        } as AllOptions);
+          jwtSecret,
+        };
   }
 );
 export default quickstart;
 
+type AllOptions = devDefault | prodDefault | customConfig;
+
 /**
- * @typeParam 'devDefault' - Use your computer's local filesystem as the storage location for supabase. Use a single postgres instance. Start supabase studio. Do not secure supabase. DON'T USE THIS IN PRODUCTION.
- *
- * @typeParam 'prodDefault' - Use an S3 provider for storage, use a Postgres cluster as the database. Does not start supabase studio. You have to bring your own S3 storage and Postgres cluster.
- *
+ * Use your computer's local filesystem as the storage location for supabase. Use a single postgres instance. Start supabase studio. Do not secure supabase. DON'T USE THIS IN PRODUCTION.
  */
-type AllOptions =
-  | 'devDefault'
-  | 'prodDefault'
-  | {
-      storageVolume: StorageVolumeOptions;
-      postgres: PostgresOptions;
-      realtime: RealtimeOptions;
-      postgRest: PostgRestOptions;
-      storage: StorageOptions;
-      postgresMeta: PostgresMetaOptions;
-      goTrue: GoTrueOptions;
-      studio: StudioOptions;
-      boxBase: BoxBaseOptions;
-      kong: KongOptions;
-    };
+type devDefault = {
+  jwtSecret: string;
+};
+
+/**
+ * Use an S3 provider for storage, use a Postgres cluster as the database. Does not start supabase studio. You have to bring your own S3 storage and Postgres cluster.
+ */
+type prodDefault = {
+  jwtSecret: string;
+  s3: string;
+  postgresCluster: string;
+};
+
+/**
+ * Choose all of your own options
+ */
+type customConfig = {
+  jwtSecret: string;
+  storageVolume: StorageVolumeOptions;
+  postgres: PostgresOptions;
+  realtime: RealtimeOptions;
+  postgRest: PostgRestOptions;
+  storage: StorageOptions;
+  postgresMeta: PostgresMetaOptions;
+  goTrue: GoTrueOptions;
+  studio: StudioOptions;
+  boxBase: BoxBaseOptions;
+  kong: KongOptions;
+};
 
 interface StorageVolumeOptions {}
 
@@ -230,7 +265,6 @@ interface GoTrueOptions {
   SITE_URL: string;
   ADDITIONAL_REDIRECT_URLS: string;
   DISABLE_SIGNUP: string;
-  JWT_SECRET: string;
   JWT_EXPIRY: string;
   ENABLE_EMAIL_SIGNUP: boolean;
   ENABLE_EMAIL_AUTOCONFIRM: boolean;
@@ -255,8 +289,6 @@ interface StudioOptions {
   STUDIO_PORT: string;
   KONG_URL: string;
   META_URL: string;
-  ANON_KEY: string;
-  SERVICE_ROLE_KEY: string;
 }
 
 //todo:
