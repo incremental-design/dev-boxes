@@ -1,14 +1,10 @@
-# copied from: https://raw.githubusercontent.com/supabase/supabase/40f37f3638ad245752eeff07d695d87e21de620a/docker/docker-compose.yml which was latest as of 2/28/2022
-
-# this file is only used as a fallback if https://raw.githubusercontent.com/supabase/supabase/master/docker/docker-compose.yml can't be downloaded
-
 # Usage
 #   Start:          docker-compose up
 #   With helpers:   docker-compose -f docker-compose.yml -f ./dev/docker-compose.dev.yml up
 #   Stop:           docker-compose down
 #   Destroy:        docker-compose -f docker-compose.yml -f ./dev/docker-compose.dev.yml down -v --remove-orphans
 
-version: '3.8'
+version: "3.8"
 
 services:
   studio:
@@ -31,7 +27,7 @@ services:
       - ${KONG_HTTP_PORT}:8000/tcp
       - ${KONG_HTTPS_PORT}:8443/tcp
     environment:
-      KONG_DATABASE: 'off'
+      KONG_DATABASE: "off"
       KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
       # https://github.com/supabase/cli/issues/14
       KONG_DNS_ORDER: LAST,A,CNAME
@@ -41,7 +37,7 @@ services:
 
   auth:
     container_name: supabase-auth
-    image: supabase/gotrue:v2.5.8
+    image: supabase/gotrue:v2.5.21
     depends_on:
       - db
     restart: unless-stopped
@@ -87,7 +83,7 @@ services:
       PGRST_DB_SCHEMAS: public,storage
       PGRST_DB_ANON_ROLE: anon
       PGRST_JWT_SECRET: ${JWT_SECRET}
-      PGRST_DB_USE_LEGACY_GUCS: 'false'
+      PGRST_DB_USE_LEGACY_GUCS: "false"
 
   realtime:
     container_name: supabase-realtime
@@ -101,14 +97,14 @@ services:
       DB_NAME: postgres
       DB_USER: postgres
       DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_SSL: 'false'
+      DB_SSL: "false"
       PORT: 4000
       JWT_SECRET: ${JWT_SECRET}
       REPLICATION_MODE: RLS
       REPLICATION_POLL_INTERVAL: 100
-      SECURE_CHANNELS: 'true'
+      SECURE_CHANNELS: "true"
       SLOT_NAME: supabase_realtime_rls
-      TEMPORARY_SLOT: 'true'
+      TEMPORARY_SLOT: "true"
     command: >
       bash -c "./prod/rel/realtime/bin/realtime eval Realtime.Release.migrate
       && ./prod/rel/realtime/bin/realtime start"

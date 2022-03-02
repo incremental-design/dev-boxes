@@ -37,7 +37,7 @@ const quickstartName = __dirname
  * Sets up a new Vue 3 frontend and Supabase backend. This consists of:
  *
  * 1. Either a local or an S3 docker storage volume.
- * 2. A PostgreSQL database.
+ * 2. A Postgres database.
  * 3. six middlewares:
  *  * Realtime, which broadcasts changes to the postgres database in realtime.
  *  * PostgREST, which maps database queries to REST API endpoints
@@ -48,7 +48,7 @@ const quickstartName = __dirname
  *  * {@link boxBase}, which serves the Vue 3 frontend.
  * 4. Kong, a proxy server which connects the middlewares to the database, and routes API requests to their respective middlewares.
  *
- * The docker storage volume handles the backend's data, PostgreSQL handles its state, the middleware handles its functionality, and the proxy server exposes its functionality to the frontend.
+ * The docker storage volume handles the backend's data, Postgres handles its state, the middleware handles its functionality, and the proxy server exposes its functionality to the frontend.
  *
  * The postgres database, each of the middlewares, and proxy server run in their own docker container.
  *
@@ -108,12 +108,12 @@ const quickstart = quickstartFactory<AllOptions>(
           {
             title: 'dev',
             description:
-              '\nDefault settings for development:\n- Uses your local filesystem as the storage location.\n- Uses a single Postgres instance.\n- Starts Supabase studio.\n- Does NOT secure supabase with passwords and certificates.\n',
+              '\nDefault settings for development:\n- Uses your local filesystem as the storage location.\n- Uses a single Postgres instance.\n- Starts Supabase studio.\n- Does NOT secure supabase.\n',
           },
           {
             title: 'prod',
             description:
-              '\nDefault settings for production:\n- Uses an S3 provider of your choice as the storage location.\n- Uses a Postgres cluster of your choice as the database location.\n- Secures supabase with passwords and certificates.\n- Does NOT start Supabase studio.\n- Bring your own S3 storage and Postgres cluster.\n',
+              '\nDefault settings for production:\n- Uses an S3 provider of your choice as the storage location.\n- Uses a Postgres cluster of your choice as the database.\n- Secures supabase with passwords and certificates.\n- Does NOT start Supabase studio.\n- Bring your own S3 storage and Postgres cluster.\n',
           },
           {
             title: 'custom',
@@ -144,11 +144,10 @@ const quickstart = quickstartFactory<AllOptions>(
 export default quickstart;
 
 /**
- * @typeParam 'devDefault' - use sane defaults for a self-hosted dev environment
+ * @typeParam 'devDefault' - Use your computer's local filesystem as the storage location for supabase. Use a single postgres instance. Start supabase studio. Do not secure supabase. DON'T USE THIS IN PRODUCTION.
  *
- * @typeParam 'prodDefault' - use sane defaults for a production environment
+ * @typeParam 'prodDefault' - Use an S3 provider for storage, use a Postgres cluster as the database. Does not start supabase studio. You have to bring your own S3 storage and Postgres cluster.
  *
- * @typeParam
  */
 type AllOptions =
   | 'devDefault'
@@ -167,29 +166,125 @@ type AllOptions =
     };
 
 interface StorageVolumeOptions {}
-interface PostgresOptions {}
-interface RealtimeOptions {}
-interface PostgRestOptions {}
-interface StorageOptions {}
-interface PostgresMetaOptions {}
-interface GoTrueOptions {}
 
 /**
+ * Options for the "supabase/postgres:14.1.0" container
  *
+ * This container starts a Postgres database. It is only used in development mode.
+ *
+ * @see https://github.com/supabase/supabase/blob/40f37f3638ad245752eeff07d695d87e21de620a/docker/docker-compose.yml#L149
  */
-interface StudioOptions {}
+interface PostgresOptions {
+  POSTGRES_PORT: number;
+  POSTGRES_PASSWORD: string;
+}
+
+/**
+ * Options for the "supabase/realtime:v0.21.0" container
+ *
+ * This container broadcasts changes to the postgres database in realtime.
+ *
+ * @see https://github.com/supabase/supabase/blob/40f37f3638ad245752eeff07d695d87e21de620a/docker/docker-compose.yml#L90
+ */
+interface RealtimeOptions {}
+
+/**
+ * Options for the "postgrest/postgrest:v9.0.0" container
+ *
+ * This container maps postgres database queries to REST API endpoints
+ *
+ * @see https://github.com/supabase/supabase/blob/40f37f3638ad245752eeff07d695d87e21de620a/docker/docker-compose.yml#L77
+ */
+interface PostgRestOptions {}
+
+/**
+ * Options for the "supabase/storage-api:v0.10.0" container
+ *
+ * This container stores and retrieves files. In development mode, it it accesses a docker volume that lives in your computer's filesystem. In production mode, it accesses an S3 storage location.
+ *
+ * @see https://github.com/supabase/supabase/blob/40f37f3638ad245752eeff07d695d87e21de620a/docker/docker-compose.yml#L12
+ */
+interface StorageOptions {
+  ANON_KEY: string;
+  SERVICE_ROLE_KEY: string;
+}
+
+/**
+ * Options for the "supabase/postgres-meta:v0.29.0" container
+ *
+ * This container maps postgres metadata queries to REST API endpoints. Metadata queries are queries about the postgres database itself, rather than the data within the database.
+ *
+ * @see https://github.com/supabase/supabase/blob/40f37f3638ad245752eeff07d695d87e21de620a/docker/docker-compose.yml#L138
+ */
+interface PostgresMetaOptions {}
+
+/**
+ * Options for the "supabase/gotrue:v2.5.8" container
+ *
+ * This container authenticates users
+ *
+ * @see https://github.com/supabase/supabase/blob/40f37f3638ad245752eeff07d695d87e21de620a/docker/docker-compose.yml#L40
+ */
+interface GoTrueOptions {
+  SITE_URL: string;
+  ADDITIONAL_REDIRECT_URLS: string;
+  DISABLE_SIGNUP: string;
+  JWT_SECRET: string;
+  JWT_EXPIRY: string;
+  ENABLE_EMAIL_SIGNUP: boolean;
+  ENABLE_EMAIL_AUTOCONFIRM: boolean;
+  SMTP_ADMIN_EMAIL: string;
+  SMTP_HOST: string;
+  SMTP_PORT: number;
+  SMTP_USER: string;
+  SMTP_PASS: string;
+  SMTP_SENDER_NAME: string;
+  ENABLE_PHONE_SIGNUP: boolean;
+  ENABLE_PHONE_AUTOCONFIRM: boolean;
+}
+
+/**
+ * Options for the "supabase/studio:latest" container
+ *
+ * This container runs the Supabase Studio admin user interface.
+ *
+ * @see https://github.com/supabase/supabase/blob/40f37f3638ad245752eeff07d695d87e21de620a/docker/docker-compose.yml#L12
+ */
+interface StudioOptions {
+  STUDIO_PORT: string;
+  KONG_URL: string;
+  META_URL: string;
+  ANON_KEY: string;
+  SERVICE_ROLE_KEY: string;
+}
+
+//todo:
 interface BoxBaseOptions {}
-interface KongOptions {}
+
+/**
+ * Options for the "kong:2.1" container
+ *
+ * This container proxies requests to your supabase backend, forwarding them to the correct container. It also connects each container to the postgres database.
+ *
+ * @see https://github.com/supabase/supabase/blob/40f37f3638ad245752eeff07d695d87e21de620a/docker/docker-compose.yml#L24
+ */
+interface KongOptions {
+  KONG_HTTP_PORT: string;
+  KONG_HTTPS_PORT: string;
+}
 
 async function getDockerCompose() {
   return parseYaml(
-    await readFile(resolve(__dirname, '..', 'docker-compose.yml'), 'utf-8')
+    await readFile(
+      resolve(__dirname, '..', 'docker', 'docker-compose.yml'),
+      'utf-8'
+    )
   );
 }
 
 async function getDefaultEnvironmentVariables() {
   const ds /* (d)efault(s)tring */ = await readFile(
-    resolve(__dirname, '..', '.env.example'),
+    resolve(__dirname, '..', 'docker', '.env.example'),
     'utf-8'
   );
   const da /* (d)efault(a)rray */ = ds
