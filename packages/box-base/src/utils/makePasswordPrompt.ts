@@ -13,7 +13,8 @@ import { retrieveFromKeychain, generatePasswords } from '.';
  * @remarks
  * These prompts only show up if:
  *  - the user has never set a password for the given service and account, and hasn't passed the --autoPassword flag.
- *  - the user passes the --changePassword flag into the CLI.
+ *  - the user passes the --changePassword flag into the CLI, and hasn't passed the --autoPassword flag.
+ *  - if the user passes BOTH the --changePassword flag AND the --autoPassword flag, it is up to you to automatically change the password for which you are prompting.
  * Note that these prompts DON'T ACTUALLY SET THE PASSWORD. They only store the password to set in the `newPassword${service}${account}` prompts answers object. It is up to you to actually take the password and add it to the keychain, with {@link addToKeychain}.
  *
  * `${service}` and `${account}` in `newPassword${service}${account}` will be camel-cased.
@@ -28,16 +29,17 @@ export async function makePasswordPrompt(
   if (password)
     return [
       {
-        name: camelCase(`changePassword${service}${account}`),
+        name: camelCase(`changePassword ${service}${account}`),
         message: `Your current password for ${service}: ${account} is ${password}. Do you want to change it?`,
         type: (prev: any) =>
-          process.argv.includes('--changePassword')
+          process.argv.includes('--changePassword') &&
+          !process.argv.includes('--autoPassword')
             ? 'confirm'
             : false /* you HAVE to pass the --changePassword flag in order to make this prompt show up */,
         initial: false,
       },
       {
-        name: camelCase(`newPassword${service}${account}`),
+        name: camelCase(`newPassword ${service}${account}`),
         message: 'What is your new password?',
         type: (prev) => (prev ? 'text' : false),
         initial: np,
@@ -46,7 +48,7 @@ export async function makePasswordPrompt(
     ];
   return [
     {
-      name: camelCase(`newPassword${service}${account}`),
+      name: camelCase(`newPassword ${service}${account}`),
       message: `Choose a password for ${service}: ${account}`,
       type: (prev: any) =>
         process.argv.includes('--autoPassword') ? false : 'text',
