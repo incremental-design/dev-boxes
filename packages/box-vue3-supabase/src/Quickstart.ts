@@ -67,11 +67,34 @@ const quickstart = quickstartFactory<AllOptions>(
         'hex'
       ); /* append the suffix to all container names so that if you start several containers, you can keep track of which ones are grouped together */
 
+    const passedOptions = Object.keys(options);
+
     const { environmentVariables, yamlObject } = await getDockerCompose();
+
+    if (
+      !passedOptions.includes('s3') &&
+      !passedOptions.includes('postgresCluster')
+    ) {
+      /* then use development defaults */
+      const defaults = await getDefaultEnvironmentVariables();
+      Object.entries(environmentVariables).forEach((entry) => {
+        const [k, v] = entry;
+        if (defaults.hasOwnProperty(v))
+          /* because the values of the env variables map to the defaults */
+          environmentVariables[k] =
+            defaults[
+              v
+            ]; /* this WILL omit defaults that aren't present in the environment variables ... because how would we apply them to the yamlObject? */
+      });
+    } else {
+      /* start with production defaults and merge the rest of the options */
+      console.error('not implemented yet');
+      process.exit(1); // todo: actually implement production and get rid of this stuff
+    }
 
     console.log(options);
 
-    console.log(JSON.stringify(yamlObject, null, 2));
+    // console.log(JSON.stringify(yamlObject, null, 2));
 
     return {
       destroy: async () => {
@@ -89,7 +112,10 @@ const quickstart = quickstartFactory<AllOptions>(
   },
   async () => {
     /* write a CLI prompt to ask user for options here */
-    console.log(process.argv);
+    const jwtPrompt = await makePasswordPrompt(
+      'box-vue3-supabase',
+      'JWT_SECRET'
+    );
     const { preset, newPasswordBoxVue3SupabaseJwtSecret } =
       await getAnswersFromCLI([
         {
@@ -115,44 +141,58 @@ const quickstart = quickstartFactory<AllOptions>(
           ],
           initial: 0,
         },
-        ...(await makePasswordPrompt('box-vue3-supabase', 'JWT_SECRET')),
+        ...jwtPrompt,
       ]);
 
-    if (![0, 1, 'dev', 'development', 'prod', 'production'].includes(preset)) {
+    if (
+      ![
+        0 /* prompt 'dev' */,
+        1 /* prompt 'prod' */,
+        2 /* prompt 'custom' */,
+        'dev',
+        'development',
+        'prod',
+        'production',
+      ].includes(preset)
+    ) {
       console.error(
         `--preset '${preset}' is not a valid option. It should be either 'dev' for the development preset or 'prod' for the production preset.`
       );
       process.exit(1);
     }
 
-    const jwtSecret =
-      (await (async () => {
-        const pw = newPasswordBoxVue3SupabaseJwtSecret;
-        if (pw) await addToKeychain('box-vue3-supabase', 'JWT_SECRET', pw);
-        return pw;
-      })()) ||
-      (await retrieveFromKeychain('box-vue3-supabase', 'JWT_SECRET')) ||
-      (await (async () => {
-        const pw = generatePasswords(64, true, 1).next().value;
+    let jwtSecret;
+
+    const changePassword = process.argv.includes('--changePassword');
+
+    if (changePassword && !newPasswordBoxVue3SupabaseJwtSecret) {
+      /* then both --changePassword and --autoPassword were set */
+      const pw = generatePasswords(64, true, 1).next().value;
+      console.log(
+        `Automatically changing box-vue3-supabase JWT_SECRET to ${pw}`
+      );
+      await addToKeychain('box-vue3-supabase', 'JWT_SECRET', pw);
+      jwtSecret = pw;
+    } else if (newPasswordBoxVue3SupabaseJwtSecret) {
+      /* then --changePassword was set OR new password was prompted */
+
+      await addToKeychain(
+        'box-vue3-supabase',
+        'JWT_SECRET',
+        newPasswordBoxVue3SupabaseJwtSecret
+      );
+      jwtSecret = newPasswordBoxVue3SupabaseJwtSecret;
+    } else {
+      /* --autoPassword was passed */
+      let pw = await retrieveFromKeychain('box-vue3-supabase', 'JWT_SECRET');
+      if (!pw) {
+        pw = generatePasswords(64, true, 1).next().value;
         console.log(
           `Automatically setting box-vue3-supabase JWT_SECRET to ${pw}`
         );
-        await addToKeychain('box-vue3-supabase', 'JWT_SECRET', pw);
-        return pw;
-      })());
-
-    // if (options === 'devDefault') {
-    //   const defaults = await getDefaultEnvironmentVariables();
-    //   Object.entries(environmentVariables).forEach((entry) => {
-    //     const [k, v] = entry;
-    //     if (defaults.hasOwnProperty(v))
-    //       /* because the values of the env variables map to the defaults */
-    //       environmentVariables[k] =
-    //         defaults[
-    //           v
-    //         ]; /* this WILL omit defaults that aren't present in the environment variables ... because how would we apply them to the yamlObject? */
-    //   });
-    // }
+      }
+      jwtSecret = pw;
+    }
 
     return [0, 'dev', 'development'].includes(preset)
       ? { jwtSecret }
@@ -170,6 +210,8 @@ type AllOptions = devDefault | prodDefault | customConfig;
 
 /**
  * Use your computer's local filesystem as the storage location for supabase. Use a single postgres instance. Start supabase studio. Do not secure supabase. DON'T USE THIS IN PRODUCTION.
+ *
+ * @typeParam jwtSecret: a password that will be used to make JSON Web Tokens for authentication. This must be a minimum of 36 characters long.
  */
 type devDefault = {
   jwtSecret: string;
@@ -177,6 +219,8 @@ type devDefault = {
 
 /**
  * Use an S3 provider for storage, use a Postgres cluster as the database. Does not start supabase studio. You have to bring your own S3 storage and Postgres cluster.
+ *
+ * @typeParam jwtSecret: a password that will be used to make JSON Web Tokens for authentication. This must be a minimum of 36 characters long.
  */
 type prodDefault = {
   jwtSecret: string;
@@ -186,9 +230,13 @@ type prodDefault = {
 
 /**
  * Choose all of your own options
+ *
+ * @typeParam jwtSecret: a password that will be used to make JSON Web Tokens for authentication. This must be a minimum of 36 characters long.
  */
 type customConfig = {
   jwtSecret: string;
+  s3: string;
+  postgresCluster: string;
   storageVolume: StorageVolumeOptions;
   postgres: PostgresOptions;
   realtime: RealtimeOptions;
