@@ -92,8 +92,6 @@ const quickstart = quickstartFactory<AllOptions>(
       process.exit(1); // todo: actually implement production and get rid of this stuff
     }
 
-    console.log(options);
-
     // console.log(JSON.stringify(yamlObject, null, 2));
 
     return {
@@ -197,10 +195,12 @@ const quickstart = quickstartFactory<AllOptions>(
     return [0, 'dev', 'development'].includes(preset)
       ? { jwtSecret }
       : [1, 'prod', 'production'].includes(preset)
-      ? { jwtSecret }
+      ? { jwtSecret, s3: '', postgresCluster: '' }
       : {
           /* the answers from the CLI prompt, in the format of options */
           jwtSecret,
+          s3: '',
+          postgresCluster: '',
         };
   }
 );
