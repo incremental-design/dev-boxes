@@ -324,7 +324,6 @@ const quickstart = quickstartFactory<AllOptions>(
       },
       postgres: {
         POSTGRES_PORT: postgresPort || availablePorts[3],
-        POSTGRES_PASSWORD: postgresPassword,
       },
     };
 
@@ -412,7 +411,6 @@ interface StorageVolumeOptions {}
  * @see https://github.com/supabase/supabase/blob/40f37f3638ad245752eeff07d695d87e21de620a/docker/docker-compose.yml#L149
  */
 interface PostgresOptions {
-  POSTGRES_PASSWORD: string;
   POSTGRES_PORT: number;
 }
 
