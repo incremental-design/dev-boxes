@@ -77,6 +77,7 @@ const quickstart = quickstartFactory<AllOptions>(
       options.jwtSecret
     );
     environmentVariables.JWT_SECRET = options.jwtSecret;
+    environmentVariables.POSTGRES_PASSWORD = options.postgresPassword;
 
     console.log(environmentVariables);
 
@@ -100,13 +101,6 @@ const quickstart = quickstartFactory<AllOptions>(
       console.error('not implemented yet');
       process.exit(1); // todo: actually implement production and get rid of this stuff
     }
-
-    const o = Object.getOwnPropertyDescriptor(
-      yamlObject.services.storage.environment,
-      'SERVICE_KEY'
-    );
-
-    if (o && o.get) console.log(o.get.toString());
 
     const c = yamlObject.services.storage.environment.SERVICE_KEY;
 
@@ -138,33 +132,42 @@ const quickstart = quickstartFactory<AllOptions>(
       'box-vue3-supabase',
       'JWT_SECRET'
     );
-    const { preset, newPasswordBoxVue3SupabaseJwtSecret } =
-      await getAnswersFromCLI([
-        {
-          name: 'preset',
-          type: 'select',
-          message: 'Use default settings?',
-          choices: [
-            {
-              title: 'dev',
-              description:
-                '\nDefault settings for development:\n- Uses your local filesystem as the storage location.\n- Uses a single Postgres instance.\n- Starts Supabase studio.\n- Does NOT secure supabase.\n',
-            },
-            {
-              title: 'prod',
-              description:
-                '\nDefault settings for production:\n- Uses an S3 provider of your choice as the storage location.\n- Uses a Postgres cluster of your choice as the database.\n- Secures supabase with passwords and certificates.\n- Does NOT start Supabase studio.\n- Bring your own S3 storage and Postgres cluster.\n',
-            },
-            {
-              title: 'custom',
-              description:
-                '\nCustomize all of the cluster settings however you want.',
-            },
-          ],
-          initial: 0,
-        },
-        ...jwtPrompt,
-      ]);
+
+    const postgresPasswordPrompt = await makePasswordPrompt(
+      'box-vue3-supabase',
+      'postgres'
+    );
+    const {
+      preset,
+      newPasswordBoxVue3SupabaseJwtSecret,
+      newPasswordBoxVue3Supabasepostgres,
+    } = await getAnswersFromCLI([
+      {
+        name: 'preset',
+        type: 'select',
+        message: 'Use default settings?',
+        choices: [
+          {
+            title: 'dev',
+            description:
+              '\nDefault settings for development:\n- Uses your local filesystem as the storage location.\n- Uses a single Postgres instance.\n- Starts Supabase studio.\n- Does NOT secure supabase.\n',
+          },
+          {
+            title: 'prod',
+            description:
+              '\nDefault settings for production:\n- Uses an S3 provider of your choice as the storage location.\n- Uses a Postgres cluster of your choice as the database.\n- Secures supabase with passwords and certificates.\n- Does NOT start Supabase studio.\n- Bring your own S3 storage and Postgres cluster.\n',
+          },
+          {
+            title: 'custom',
+            description:
+              '\nCustomize all of the cluster settings however you want.',
+          },
+        ],
+        initial: 0,
+      },
+      ...jwtPrompt,
+      ...postgresPasswordPrompt,
+    ]);
 
     if (
       ![
@@ -183,46 +186,63 @@ const quickstart = quickstartFactory<AllOptions>(
       process.exit(1);
     }
 
-    let jwtSecret;
+    // let jwtSecret;
 
     const changePassword = process.argv.includes('--changePassword');
 
-    if (changePassword && !newPasswordBoxVue3SupabaseJwtSecret) {
-      /* then both --changePassword and --autoPassword were set */
-      const pw = generatePasswords(64, true, 1).next().value;
-      console.log(
-        `Automatically changing box-vue3-supabase JWT_SECRET to ${pw}`
-      );
-      await addToKeychain('box-vue3-supabase', 'JWT_SECRET', pw);
-      jwtSecret = pw;
-    } else if (newPasswordBoxVue3SupabaseJwtSecret) {
-      /* then --changePassword was set OR new password was prompted */
+    const handlePasswordPromptAnswer = async (
+      answer: any,
+      service: string,
+      account: string
+    ) => {
+      let password;
 
-      await addToKeychain(
-        'box-vue3-supabase',
-        'JWT_SECRET',
-        newPasswordBoxVue3SupabaseJwtSecret
-      );
-      jwtSecret = newPasswordBoxVue3SupabaseJwtSecret;
-    } else {
-      /* --autoPassword was passed */
-      let pw = await retrieveFromKeychain('box-vue3-supabase', 'JWT_SECRET');
-      if (!pw) {
-        pw = generatePasswords(64, true, 1).next().value;
+      if (changePassword && !answer) {
+        /* then both --changePassword and --autoPassword were set */
+        password = generatePasswords(64, true, 1).next().value;
         console.log(
-          `Automatically setting box-vue3-supabase JWT_SECRET to ${pw}`
+          `Automatically changing password for ${service} ${account} to ${password}`
         );
+        await addToKeychain(service, account, password);
+      } else if (answer) {
+        /* then --changePassword was set OR new password was prompted */
+        password = answer;
+        await addToKeychain(service, account, password);
+      } else {
+        password = await retrieveFromKeychain(service, account);
+        if (!password) {
+          password = generatePasswords(64, true, 1).next().value;
+          console.log(
+            `Automatically setting password for ${service} ${account} to ${password}`
+          );
+        }
       }
-      jwtSecret = pw;
-    }
+
+      return password;
+    };
+
+    const jwtSecret = await handlePasswordPromptAnswer(
+      newPasswordBoxVue3SupabaseJwtSecret,
+      'box-vue3-supabase',
+      'JWT_SECRET'
+    );
+
+    console.log(newPasswordBoxVue3Supabasepostgres);
+
+    const postgresPassword = await handlePasswordPromptAnswer(
+      newPasswordBoxVue3Supabasepostgres,
+      'box-vue3-supabase',
+      'postgres'
+    );
 
     return [0, 'dev', 'development'].includes(preset)
-      ? { jwtSecret }
+      ? { jwtSecret, postgresPassword }
       : [1, 'prod', 'production'].includes(preset)
-      ? { jwtSecret, s3: '', postgresCluster: '' }
+      ? { jwtSecret, postgresPassword, s3: '', postgresCluster: '' }
       : {
           /* the answers from the CLI prompt, in the format of options */
           jwtSecret,
+          postgresPassword,
           s3: '',
           postgresCluster: '',
         };
@@ -236,18 +256,24 @@ type AllOptions = devDefault | prodDefault | customConfig;
  * Use your computer's local filesystem as the storage location for supabase. Use a single postgres instance. Start supabase studio. Do not secure supabase. DON'T USE THIS IN PRODUCTION.
  *
  * @typeParam jwtSecret: a password that will be used to make JSON Web Tokens for authentication. This must be a minimum of 36 characters long.
+ *
+ * @typeParam postgresPassword: a password that will be used to authenticate to the postgres database. This password is required for direct access to the database using tools like psql, TablePlus, and Supabase Studio
  */
 type devDefault = {
   jwtSecret: string;
+  postgresPassword: string;
 };
 
 /**
  * Use an S3 provider for storage, use a Postgres cluster as the database. Does not start supabase studio. You have to bring your own S3 storage and Postgres cluster.
  *
  * @typeParam jwtSecret: a password that will be used to make JSON Web Tokens for authentication. This must be a minimum of 36 characters long.
+ *
+ * @typeParam postgresPassword: a password that will be used to authenticate to the postgres database. This password is required for direct access to the database using tools like psql, TablePlus, and Supabase Studio
  */
 type prodDefault = {
   jwtSecret: string;
+  postgresPassword: string;
   s3: string;
   postgresCluster: string;
 };
@@ -256,9 +282,12 @@ type prodDefault = {
  * Choose all of your own options
  *
  * @typeParam jwtSecret: a password that will be used to make JSON Web Tokens for authentication. This must be a minimum of 36 characters long.
+ *
+ * @typeParam postgresPassword: a password that will be used to authenticate to the postgres database. This password is required for direct access to the database using tools like psql, TablePlus, and Supabase Studio
  */
 type customConfig = {
   jwtSecret: string;
+  postgresPassword: string;
   s3: string; // this is just a placeholder
   postgresCluster: string; // this is just a placeholder
   storageVolume: StorageVolumeOptions;
