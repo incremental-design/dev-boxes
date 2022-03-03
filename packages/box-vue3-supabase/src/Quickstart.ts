@@ -168,6 +168,7 @@ const quickstart = quickstartFactory<AllOptions>(
       studioPort,
       kongHttpPort,
       kongHttpsPort,
+      postgresPort,
     } = await getAnswersFromCLI([
       {
         name: 'preset',
@@ -213,6 +214,13 @@ const quickstart = quickstartFactory<AllOptions>(
         type: (prev, values) => (values.preset === 2 ? 'number' : false),
         message: `Choose the port on which kong will listen for API requests made with https. (e.g. https://localhost:${KONG_HTTPS_PORT}`,
         initial: availablePorts[2],
+        validate: validatePort,
+      },
+      {
+        name: 'postgresPort',
+        type: (prev, values) => (values.preset === 2 ? 'number' : false),
+        message: `Choose the port on which postgres will listen for connections. (e.g. https://localhost:${POSTGRES_PORT}`,
+        initial: availablePorts[3],
         validate: validatePort,
       },
     ]);
@@ -263,7 +271,6 @@ const quickstart = quickstartFactory<AllOptions>(
           );
         }
       }
-
       return password;
     };
 
@@ -289,11 +296,22 @@ const quickstart = quickstartFactory<AllOptions>(
         `Kong will listen for API requests on http://localhost:${availablePorts[1]}`
       );
 
+    if (!kongHttpsPort)
+      console.log(
+        `Kong will listen for API requests on https://localhost:${availablePorts[2]}`
+      );
+
+    if (!postgresPort)
+      console.log(
+        `Postgres will listen for connections on http://localhost:${availablePorts[3]}`
+      );
+
     const use: {
       jwtSecret: string;
       postgresPassword: string;
       studio: StudioOptions;
       kong: KongOptions;
+      postgres: PostgresOptions;
     } = {
       jwtSecret,
       postgresPassword,
@@ -303,6 +321,10 @@ const quickstart = quickstartFactory<AllOptions>(
       kong: {
         KONG_HTTP_PORT: kongHttpPort || availablePorts[1],
         KONG_HTTPS_PORT: kongHttpsPort || availablePorts[2],
+      },
+      postgres: {
+        POSTGRES_PORT: postgresPort || availablePorts[3],
+        POSTGRES_PASSWORD: postgresPassword,
       },
     };
 
@@ -383,11 +405,15 @@ interface StorageVolumeOptions {}
  *
  * This container starts a Postgres database. It is only used in development mode.
  *
+ * @typeParam POSTGRES_PASSWORD - the password used to authenticate to the database.
+ *
+ * @typeParam POSTGRES_PORT - the port on localhost on which Postgres will listen for connections. DO NOT ENABLE THIS IN PRODUCTION.
+ *
  * @see https://github.com/supabase/supabase/blob/40f37f3638ad245752eeff07d695d87e21de620a/docker/docker-compose.yml#L149
  */
 interface PostgresOptions {
-  POSTGRES_PORT: number;
   POSTGRES_PASSWORD: string;
+  POSTGRES_PORT: number;
 }
 
 /**
