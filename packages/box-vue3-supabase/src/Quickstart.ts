@@ -1,9 +1,8 @@
 import crypto from 'crypto';
-import { fetch } from 'undici';
-import { inspect } from 'util';
 import { resolve } from 'path';
 import { readFile } from 'fs/promises';
 import { makeJWT } from './utils';
+import { checkPortStatus, findAPortNotInUse } from 'portscanner';
 
 import Docker from 'dockerode'; /* this talks to the docker API at `/var/run/docker.sock` see: https://www.npmjs.com/package/dockerode */
 // import { parse as parseDockerFile } from 'docker-file-parser'; /* this parses dockerfiles. See: https://www.npmjs.com/package/docker-file-parser */
@@ -22,7 +21,6 @@ import {
   DefinitionsService,
   generatePasswords,
 } from '@incremental.design/box-base';
-import { Console } from 'console';
 /**
  *
  * @param dockerInstance - an instance of the {@link Docker} class. If an instance isn't provided, then quickstart will create one for you. The idea is that you can chain quickstarts together, sharing the same docker instance among them.
@@ -71,16 +69,7 @@ const quickstart = quickstartFactory<AllOptions>(
 
     const { environmentVariables, yamlObject } = await getDockerCompose();
 
-    environmentVariables.ANON_KEY = makeJWT('anon', options.jwtSecret);
-    environmentVariables.SERVICE_ROLE_KEY = makeJWT(
-      'service',
-      options.jwtSecret
-    );
-    environmentVariables.JWT_SECRET = options.jwtSecret;
-    environmentVariables.POSTGRES_PASSWORD = options.postgresPassword;
-
-    console.log(environmentVariables);
-
+    /* apply defaults first*/
     if (
       !passedOptions.includes('s3') &&
       !passedOptions.includes('postgresCluster')
@@ -97,10 +86,29 @@ const quickstart = quickstartFactory<AllOptions>(
             ]; /* this WILL omit defaults that aren't present in the environment variables ... because how would we apply them to the yamlObject? */
       });
     } else {
-      /* start with production defaults and merge the rest of the options */
+      /* use production defaults */
       console.error('not implemented yet');
       process.exit(1); // todo: actually implement production and get rid of this stuff
     }
+
+    /* apply options next */
+
+    environmentVariables.ANON_KEY = makeJWT('anon', options.jwtSecret);
+    environmentVariables.SERVICE_ROLE_KEY = makeJWT(
+      'service',
+      options.jwtSecret
+    );
+    environmentVariables.JWT_SECRET = options.jwtSecret;
+    environmentVariables.POSTGRES_PASSWORD = options.postgresPassword;
+
+    if (options.studio) {
+      /* apply studio options */
+      environmentVariables.STUDIO_PORT = options.studio.STUDIO_PORT;
+      environmentVariables.META_URL = options.studio.META_URL;
+      environmentVariables.KONG_URL = options.studio.KONG_URL;
+    }
+
+    console.log(environmentVariables);
 
     const c = yamlObject.services.storage.environment.SERVICE_KEY;
 
@@ -127,7 +135,26 @@ const quickstart = quickstartFactory<AllOptions>(
     };
   },
   async () => {
-    /* write a CLI prompt to ask user for options here */
+    const {
+      STUDIO_PORT,
+      KONG_HTTP_PORT,
+      KONG_HTTPS_PORT,
+      POSTGRES_PORT,
+      KONG_URL,
+      META_URL,
+    } = await getDefaultEnvironmentVariables();
+
+    const availablePorts = await Promise.all(
+      [STUDIO_PORT, KONG_HTTP_PORT, KONG_HTTPS_PORT, POSTGRES_PORT].map(
+        (port) => findAPortNotInUse(port, 65535)
+      )
+    );
+
+    const validatePort = async (port: number) => {
+      if ((await checkPortStatus(port)) === 'closed') return true;
+      return `Port ${port} on localhost is in use. Choose a different port`;
+    };
+
     const jwtPrompt = await makePasswordPrompt(
       'box-vue3-supabase',
       'JWT_SECRET'
@@ -141,6 +168,7 @@ const quickstart = quickstartFactory<AllOptions>(
       preset,
       newPasswordBoxVue3SupabaseJwtSecret,
       newPasswordBoxVue3Supabasepostgres,
+      studioPort,
     } = await getAnswersFromCLI([
       {
         name: 'preset',
@@ -167,6 +195,13 @@ const quickstart = quickstartFactory<AllOptions>(
       },
       ...jwtPrompt,
       ...postgresPasswordPrompt,
+      {
+        name: 'studioPort',
+        type: (prev, values) => (values.preset === 2 ? 'number' : false),
+        message: `Choose the port on which Supabase Studio will run. (e.g. https://localhost:${STUDIO_PORT}`,
+        initial: availablePorts[0],
+        validate: validatePort,
+      },
     ]);
 
     if (
@@ -227,24 +262,44 @@ const quickstart = quickstartFactory<AllOptions>(
       'JWT_SECRET'
     );
 
-    console.log(newPasswordBoxVue3Supabasepostgres);
-
     const postgresPassword = await handlePasswordPromptAnswer(
       newPasswordBoxVue3Supabasepostgres,
       'box-vue3-supabase',
       'postgres'
     );
 
+    if (!studioPort)
+      console.log(
+        `Supabase Studio will run on https://localhost:${availablePorts[0]}`
+      );
+
+    const use: {
+      jwtSecret: string;
+      postgresPassword: string;
+      studio: StudioOptions;
+    } = {
+      jwtSecret,
+      postgresPassword,
+      studio: {
+        STUDIO_PORT: studioPort || availablePorts[0],
+        KONG_URL,
+        META_URL,
+      },
+    };
+
+    const useProd = {
+      s3: '',
+      postgresCluster: '',
+    };
+
     return [0, 'dev', 'development'].includes(preset)
-      ? { jwtSecret, postgresPassword }
+      ? { ...use }
       : [1, 'prod', 'production'].includes(preset)
-      ? { jwtSecret, postgresPassword, s3: '', postgresCluster: '' }
+      ? { ...use, ...useProd }
       : {
           /* the answers from the CLI prompt, in the format of options */
-          jwtSecret,
-          postgresPassword,
-          s3: '',
-          postgresCluster: '',
+          ...use,
+          ...useProd,
         };
   }
 );
@@ -262,7 +317,7 @@ type AllOptions = devDefault | prodDefault | customConfig;
 type devDefault = {
   jwtSecret: string;
   postgresPassword: string;
-};
+} & Partial<customConfig>;
 
 /**
  * Use an S3 provider for storage, use a Postgres cluster as the database. Does not start supabase studio. You have to bring your own S3 storage and Postgres cluster.
@@ -276,7 +331,7 @@ type prodDefault = {
   postgresPassword: string;
   s3: string;
   postgresCluster: string;
-};
+} & Partial<customConfig>;
 
 /**
  * Choose all of your own options
@@ -384,7 +439,11 @@ interface GoTrueOptions {
  *
  * This container runs the Supabase Studio admin user interface.
  *
+ * @typeParam STUDIO_PORT - the port on which the studio admin interface should be available. Defaults to 3000. (i.e. https://localhost:3000 opens studio)
+ *
  * @see https://github.com/supabase/supabase/blob/40f37f3638ad245752eeff07d695d87e21de620a/docker/docker-compose.yml#L12
+ *
+ * @see https://github.com/supabase/supabase/tree/master/studio
  */
 interface StudioOptions {
   STUDIO_PORT: string;

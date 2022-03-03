@@ -38,7 +38,7 @@ export async function getAnswersFromCLI(
       return {
         ...prompt,
         type: (prev: any) =>
-          null /* this will cause the prompt to be skipped */,
+          null /* this will cause the prompt to be skipped */, // todo: maybe use https://github.com/terkelg/prompts#override
       };
     }
     nonInteractive = false;
