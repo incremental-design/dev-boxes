@@ -167,6 +167,7 @@ const quickstart = quickstartFactory<AllOptions>(
       newPasswordBoxVue3Supabasepostgres,
       studioPort,
       kongHttpPort,
+      kongHttpsPort,
     } = await getAnswersFromCLI([
       {
         name: 'preset',
@@ -203,8 +204,15 @@ const quickstart = quickstartFactory<AllOptions>(
       {
         name: 'kongHttpPort',
         type: (prev, values) => (values.preset === 2 ? 'number' : false),
-        message: `Choose the port on which kong will listen for API requests. (e.g. https://localhost:${KONG_HTTP_PORT}`,
+        message: `Choose the port on which kong will listen for API requests. (e.g. http://localhost:${KONG_HTTP_PORT}`,
         initial: availablePorts[1],
+        validate: validatePort,
+      },
+      {
+        name: 'kongHttpsPort',
+        type: (prev, values) => (values.preset === 2 ? 'number' : false),
+        message: `Choose the port on which kong will listen for API requests made with https. (e.g. https://localhost:${KONG_HTTPS_PORT}`,
+        initial: availablePorts[2],
         validate: validatePort,
       },
     ]);
@@ -294,7 +302,7 @@ const quickstart = quickstartFactory<AllOptions>(
       },
       kong: {
         KONG_HTTP_PORT: kongHttpPort || availablePorts[1],
-        KONG_HTTPS_PORT,
+        KONG_HTTPS_PORT: kongHttpsPort || availablePorts[2],
       },
     };
 
