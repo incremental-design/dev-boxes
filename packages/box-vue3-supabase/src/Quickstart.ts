@@ -104,21 +104,20 @@ const quickstart = quickstartFactory<AllOptions>(
     if (options.studio) {
       /* apply studio options */
       environmentVariables.STUDIO_PORT = options.studio.STUDIO_PORT;
-      environmentVariables.META_URL = options.studio.META_URL;
-      environmentVariables.KONG_URL = options.studio.KONG_URL;
+    }
+
+    if (options.kong) {
+      /* apply kong options */
+      environmentVariables.KONG_HTTP_PORT = options.kong.KONG_HTTP_PORT;
+      environmentVariables.KONG_HTTPS_PORT = options.kong.KONG_HTTPS_PORT;
+      environmentVariables.KONG_URL = `http://kong:${environmentVariables.KONG_HTTP_PORT}`; /* this env var tells supabase studio what port the kong endpoint is on */
     }
 
     console.log(environmentVariables);
 
     const c = yamlObject.services.storage.environment.SERVICE_KEY;
 
-    // console.log(
-    //   JSON.stringify(
-    //     yamlObject.services.storage.environment.SERVICE_ROLE_KEY,
-    //     null,
-    //     2
-    //   )
-    // );
+    // console.log(JSON.stringify(yamlObject, null, 2));
 
     return {
       destroy: async () => {
@@ -135,14 +134,8 @@ const quickstart = quickstartFactory<AllOptions>(
     };
   },
   async () => {
-    const {
-      STUDIO_PORT,
-      KONG_HTTP_PORT,
-      KONG_HTTPS_PORT,
-      POSTGRES_PORT,
-      KONG_URL,
-      META_URL,
-    } = await getDefaultEnvironmentVariables();
+    const { STUDIO_PORT, KONG_HTTP_PORT, KONG_HTTPS_PORT, POSTGRES_PORT } =
+      await getDefaultEnvironmentVariables();
 
     const availablePorts = await Promise.all(
       [STUDIO_PORT, KONG_HTTP_PORT, KONG_HTTPS_PORT, POSTGRES_PORT].map(
@@ -151,6 +144,10 @@ const quickstart = quickstartFactory<AllOptions>(
     );
 
     const validatePort = async (port: number) => {
+      if (typeof port === 'string' && port === '')
+        return `Press tab + enter to accept the default port`;
+      if (port < 0) return `port must be > 0. Received '${port}'.`;
+      if (port > 65535) return `port must be < 65536. Received '${port}'.`;
       if ((await checkPortStatus(port)) === 'closed') return true;
       return `Port ${port} on localhost is in use. Choose a different port`;
     };
@@ -169,6 +166,7 @@ const quickstart = quickstartFactory<AllOptions>(
       newPasswordBoxVue3SupabaseJwtSecret,
       newPasswordBoxVue3Supabasepostgres,
       studioPort,
+      kongHttpPort,
     } = await getAnswersFromCLI([
       {
         name: 'preset',
@@ -202,6 +200,13 @@ const quickstart = quickstartFactory<AllOptions>(
         initial: availablePorts[0],
         validate: validatePort,
       },
+      {
+        name: 'kongHttpPort',
+        type: (prev, values) => (values.preset === 2 ? 'number' : false),
+        message: `Choose the port on which kong will listen for API requests. (e.g. https://localhost:${KONG_HTTP_PORT}`,
+        initial: availablePorts[1],
+        validate: validatePort,
+      },
     ]);
 
     if (
@@ -220,8 +225,6 @@ const quickstart = quickstartFactory<AllOptions>(
       );
       process.exit(1);
     }
-
-    // let jwtSecret;
 
     const changePassword = process.argv.includes('--changePassword');
 
@@ -273,17 +276,25 @@ const quickstart = quickstartFactory<AllOptions>(
         `Supabase Studio will run on https://localhost:${availablePorts[0]}`
       );
 
+    if (!kongHttpPort)
+      console.log(
+        `Kong will listen for API requests on http://localhost:${availablePorts[1]}`
+      );
+
     const use: {
       jwtSecret: string;
       postgresPassword: string;
       studio: StudioOptions;
+      kong: KongOptions;
     } = {
       jwtSecret,
       postgresPassword,
       studio: {
         STUDIO_PORT: studioPort || availablePorts[0],
-        KONG_URL,
-        META_URL,
+      },
+      kong: {
+        KONG_HTTP_PORT: kongHttpPort || availablePorts[1],
+        KONG_HTTPS_PORT,
       },
     };
 
@@ -406,6 +417,8 @@ interface StorageOptions {
  *
  * This container maps postgres metadata queries to REST API endpoints. Metadata queries are queries about the postgres database itself, rather than the data within the database.
  *
+ * @typeParam PG_META_PORT - the port on which this container will listen for API requests.
+ *
  * @see https://github.com/supabase/supabase/blob/40f37f3638ad245752eeff07d695d87e21de620a/docker/docker-compose.yml#L138
  */
 interface PostgresMetaOptions {}
@@ -441,14 +454,13 @@ interface GoTrueOptions {
  *
  * @typeParam STUDIO_PORT - the port on which the studio admin interface should be available. Defaults to 3000. (i.e. https://localhost:3000 opens studio)
  *
+ *
  * @see https://github.com/supabase/supabase/blob/40f37f3638ad245752eeff07d695d87e21de620a/docker/docker-compose.yml#L12
  *
  * @see https://github.com/supabase/supabase/tree/master/studio
  */
 interface StudioOptions {
   STUDIO_PORT: string;
-  KONG_URL: string;
-  META_URL: string;
 }
 
 //todo:
@@ -459,7 +471,21 @@ interface BoxBaseOptions {}
  *
  * This container proxies requests to your supabase backend, forwarding them to the correct container. It also connects each container to the postgres database.
  *
+ * @typeParam KONG_HTTP_PORT - the port on localhost that Kong will use to listen for API requests sent with http
+ *
+ * @typeParam KONG_HTTPS_PORT - the port on localhost that Kong will use to listen for API request sent with https
+ *
+ * @remarks
+ *
+ * This image might have the log4shell vulnerability.
+ *
  * @see https://github.com/supabase/supabase/blob/40f37f3638ad245752eeff07d695d87e21de620a/docker/docker-compose.yml#L24
+ *
+ * @see https://hub.docker.com/layers/kong/library/kong/2.1.0/images/sha256-aa6d39989058a27439807d9fc09becdcef04ca9d5c3a87fd2390f3e4fe210cf2?context=explore
+ *
+ * @see https://github.com/Kong/docker-kong/blob/ab4e1d8a61d80e5884e940f76622f729e751f563/alpine/Dockerfile
+ *
+ * @see https://docs.konghq.com/enterprise/2.3.x/deployment/default-ports/#main
  */
 interface KongOptions {
   KONG_HTTP_PORT: string;
