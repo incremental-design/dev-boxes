@@ -71,6 +71,15 @@ const quickstart = quickstartFactory<AllOptions>(
 
     const { environmentVariables, yamlObject } = await getDockerCompose();
 
+    environmentVariables.ANON_KEY = makeJWT('anon', options.jwtSecret);
+    environmentVariables.SERVICE_ROLE_KEY = makeJWT(
+      'service',
+      options.jwtSecret
+    );
+    environmentVariables.JWT_SECRET = options.jwtSecret;
+
+    console.log(environmentVariables);
+
     if (
       !passedOptions.includes('s3') &&
       !passedOptions.includes('postgresCluster')
@@ -92,7 +101,22 @@ const quickstart = quickstartFactory<AllOptions>(
       process.exit(1); // todo: actually implement production and get rid of this stuff
     }
 
-    // console.log(JSON.stringify(yamlObject, null, 2));
+    const o = Object.getOwnPropertyDescriptor(
+      yamlObject.services.storage.environment,
+      'SERVICE_KEY'
+    );
+
+    if (o && o.get) console.log(o.get.toString());
+
+    const c = yamlObject.services.storage.environment.SERVICE_KEY;
+
+    // console.log(
+    //   JSON.stringify(
+    //     yamlObject.services.storage.environment.SERVICE_ROLE_KEY,
+    //     null,
+    //     2
+    //   )
+    // );
 
     return {
       destroy: async () => {
@@ -235,8 +259,8 @@ type prodDefault = {
  */
 type customConfig = {
   jwtSecret: string;
-  s3: string;
-  postgresCluster: string;
+  s3: string; // this is just a placeholder
+  postgresCluster: string; // this is just a placeholder
   storageVolume: StorageVolumeOptions;
   postgres: PostgresOptions;
   realtime: RealtimeOptions;
