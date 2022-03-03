@@ -99,9 +99,8 @@ export function parseYaml(yamlString: string): {
         addToEnvironmentVariables(envVar);
         Object.defineProperty(c, key, {
           get: function () {
-            return environmentVariables[key];
+            return environmentVariables[envVar];
           },
-          configurable: true, // test if it still works when not true
           enumerable:
             true /* VERY important. See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty#description */,
         });
