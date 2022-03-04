@@ -114,6 +114,11 @@ const quickstart = quickstartFactory<AllOptions>(
       environmentVariables.KONG_URL = `http://kong:${environmentVariables.KONG_HTTP_PORT}`; /* this env var tells supabase studio what port the kong endpoint is on */
     }
 
+    if (options.goTrue) {
+      environmentVariables.SITE_URL = options.goTrue.SITE_URL;
+      environmentVariables.JWT_EXPIRY = options.goTrue.JWT_EXPIRY;
+    }
+
     console.log(environmentVariables);
 
     const c = yamlObject.services.storage.environment.SERVICE_KEY;
@@ -135,8 +140,13 @@ const quickstart = quickstartFactory<AllOptions>(
     };
   },
   async () => {
-    const { STUDIO_PORT, KONG_HTTP_PORT, KONG_HTTPS_PORT, POSTGRES_PORT } =
-      await getDefaultEnvironmentVariables();
+    const {
+      STUDIO_PORT,
+      KONG_HTTP_PORT,
+      KONG_HTTPS_PORT,
+      POSTGRES_PORT,
+      JWT_EXPIRY,
+    } = await getDefaultEnvironmentVariables();
 
     const availablePorts = await Promise.all(
       [
@@ -179,6 +189,7 @@ const quickstart = quickstartFactory<AllOptions>(
       siteUrl,
       sitePortHttp,
       sitePortHttps,
+      jwtExpiry,
     } = await getAnswersFromCLI([
       {
         name: 'preset',
@@ -294,6 +305,18 @@ const quickstart = quickstartFactory<AllOptions>(
         initial: availablePorts[6],
         validate: validatePort,
       },
+      {
+        name: 'jwtExpiry',
+        type: (prev, values) => {
+          return values.preset < 2 || !values.preset ? false : 'number';
+        },
+        message:
+          'How many seconds should pass before your web app automatically logs users out?',
+        initial: JWT_EXPIRY,
+        validate: (value) =>
+          value >
+          0 /* we aren't giving 'infinite' as an option because that is a VERY bad idea. This is because if a bad actor steals a user's JWT, and the JWT never expires, the bad actor will have full access to supabase until you manually reset the JWT_SECRET */,
+      },
     ]);
 
     if (
@@ -376,7 +399,7 @@ const quickstart = quickstartFactory<AllOptions>(
         `Postgres will listen for connections on http://${
           siteUrl || 'localhost'
         }:${availablePorts[3]}`
-      );
+      ); // todo: RESTRICT CONNECTIONS TO LOCALHOST IN PROD (and also set firewall rules)
 
     const SITE_URL = `http://${siteUrl || 'localhost'}:${
       sitePortHttp || availablePorts[4]
@@ -396,7 +419,7 @@ const quickstart = quickstartFactory<AllOptions>(
       studio: StudioOptions;
       kong: KongOptions;
       postgres: PostgresOptions;
-      gotrue: GoTrueOptions;
+      goTrue: GoTrueOptions;
     } = {
       jwtSecret,
       postgresPassword,
@@ -410,11 +433,11 @@ const quickstart = quickstartFactory<AllOptions>(
       postgres: {
         POSTGRES_PORT: postgresPort || availablePorts[3],
       },
-      gotrue: {
+      goTrue: {
         SITE_URL,
         DISABLE_SIGNUP: preset === 0 /* 'true' if dev, 'false' if prod */,
         // todo: ADDITIONAL_REDIRECT_URLS
-        JWT_EXPIRY: 3600,
+        JWT_EXPIRY: jwtExpiry || JWT_EXPIRY,
         ENABLE_EMAIL_SIGNUP: false,
         ENABLE_EMAIL_AUTOCONFIRM: false,
         SMTP_ADMIN_EMAIL: 'hello@example.com',
