@@ -24,6 +24,7 @@ import prompts, { PromptObject } from 'prompts';
  */
 export async function getAnswersFromCLI(
   questions: Array<prompts.PromptObject>
+  // todo: make --help text, which should show up on console error before exiting. consider auto-generating using the questions array
 ) {
   const cli = cac();
   const { args, options } = cli.parse();

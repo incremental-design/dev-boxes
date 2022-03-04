@@ -93,6 +93,7 @@ const quickstart = quickstartFactory<AllOptions>(
 
     /* apply options next */
 
+    /* see: https://supabase.com/docs/learn/auth-deep-dive/auth-deep-dive-jwts#jwts-in-supabase */
     environmentVariables.ANON_KEY = makeJWT('anon', options.jwtSecret);
     environmentVariables.SERVICE_ROLE_KEY = makeJWT(
       'service',
@@ -138,9 +139,15 @@ const quickstart = quickstartFactory<AllOptions>(
       await getDefaultEnvironmentVariables();
 
     const availablePorts = await Promise.all(
-      [STUDIO_PORT, KONG_HTTP_PORT, KONG_HTTPS_PORT, POSTGRES_PORT].map(
-        (port) => findAPortNotInUse(port, 65535)
-      )
+      [
+        STUDIO_PORT,
+        KONG_HTTP_PORT,
+        KONG_HTTPS_PORT,
+        POSTGRES_PORT,
+        8080 /* the http port to listen on in dev */,
+        80 /* the http port to listen on in prod */,
+        443 /* the https port to listen on in prod */,
+      ].map((port) => findAPortNotInUse(port, 65535))
     );
 
     const validatePort = async (port: number) => {
@@ -169,6 +176,9 @@ const quickstart = quickstartFactory<AllOptions>(
       kongHttpPort,
       kongHttpsPort,
       postgresPort,
+      siteUrl,
+      sitePortHttp,
+      sitePortHttps,
     } = await getAnswersFromCLI([
       {
         name: 'preset',
@@ -197,30 +207,91 @@ const quickstart = quickstartFactory<AllOptions>(
       ...postgresPasswordPrompt,
       {
         name: 'studioPort',
-        type: (prev, values) => (values.preset === 2 ? 'number' : false),
+        type: (prev, values) =>
+          values.preset < 2 || !values.preset ? false : 'number',
         message: `Choose the port on which Supabase Studio will run. (e.g. https://localhost:${STUDIO_PORT}`,
         initial: availablePorts[0],
         validate: validatePort,
       },
       {
         name: 'kongHttpPort',
-        type: (prev, values) => (values.preset === 2 ? 'number' : false),
+        type: (prev, values) =>
+          values.preset < 2 || !values.preset ? false : 'number',
         message: `Choose the port on which kong will listen for API requests. (e.g. http://localhost:${KONG_HTTP_PORT}`,
         initial: availablePorts[1],
         validate: validatePort,
       },
       {
         name: 'kongHttpsPort',
-        type: (prev, values) => (values.preset === 2 ? 'number' : false),
+        type: (prev, values) =>
+          values.preset < 2 || !values.preset ? false : 'number',
         message: `Choose the port on which kong will listen for API requests made with https. (e.g. https://localhost:${KONG_HTTPS_PORT}`,
         initial: availablePorts[2],
         validate: validatePort,
       },
       {
         name: 'postgresPort',
-        type: (prev, values) => (values.preset === 2 ? 'number' : false),
+        type: (prev, values) =>
+          values.preset < 2 || !values.preset ? false : 'number',
         message: `Choose the port on which postgres will listen for connections. (e.g. https://localhost:${POSTGRES_PORT}`,
         initial: availablePorts[3],
+        validate: validatePort,
+      },
+      {
+        name: 'siteUrl',
+        type: (prev, values) =>
+          values.preset === 0 ||
+          !values.preset /* if preset is 'dev' don't bother setting a site url */
+            ? false
+            : 'text',
+        message: 'What is the domain name of your web app?',
+        initial: 'my-supa-app.com',
+        validate: (url: string) => {
+          /* valid domains are 'localhost', any IP address, or a domain with a generic top-level domain (gTLD) */
+          if (url === 'localhost') return true;
+          if (
+            (() => {
+              const octets = url.split('.').map((octet) => {
+                const o = parseInt(octet);
+                return (
+                  o >= 0 &&
+                  o <=
+                    255 /* yes, I know that we aren't checking to make sure that an IP address isn't a broadcast address. Maybe later. I don't feel like solving the CIDRs rn. */
+                );
+              });
+              return octets.length === 4 && octets.every((octet) => octet);
+            })()
+          )
+            return true;
+          if (
+            !url.match(
+              /.+?\.[a-zA-Z]+?$/
+            ) /* e.g. abc.com, abc.net, abc.io, ... see: https://stackoverflow.com/questions/9071279/number-in-the-top-level-domain */
+          )
+            return 'Site url must be an IP address or be a domain name that ends with a generic top-level-domain (gTLD) (e.g. .com, .net, .org)';
+          return true;
+        },
+      },
+      {
+        name: 'sitePortHttp',
+        type: (prev, values) =>
+          values.preset === 0 || !values.preset ? false : 'number',
+        message: 'What port does your web app listen on for http traffic?',
+        initial: (prev, values) =>
+          values.preset === 0 || !values.preset
+            ? availablePorts[4] /* if preset 'dev' use the first available port starting from 3000 */
+            : availablePorts[5] /* else, use the first availabe port starting from 80 */,
+        validate: validatePort,
+      },
+      {
+        name: 'sitePortHttps',
+        type: (prev, values) =>
+          values.preset === 0 ||
+          !values.preset /* if preset is 'dev' don't bother setting a site https port */
+            ? false
+            : 'number',
+        message: 'What port does your web app listen on for https traffic?',
+        initial: availablePorts[6],
         validate: validatePort,
       },
     ]);
@@ -286,24 +357,37 @@ const quickstart = quickstartFactory<AllOptions>(
       'postgres'
     );
 
-    if (!studioPort)
-      console.log(
-        `Supabase Studio will run on https://localhost:${availablePorts[0]}`
-      );
-
     if (!kongHttpPort)
       console.log(
-        `Kong will listen for API requests on http://localhost:${availablePorts[1]}`
+        `Kong will listen for API requests on http://${
+          siteUrl || 'localhost'
+        }:${availablePorts[1]}`
       );
 
     if (!kongHttpsPort)
       console.log(
-        `Kong will listen for API requests on https://localhost:${availablePorts[2]}`
+        `Kong will listen for API requests on https://${
+          siteUrl || 'localhost'
+        }:${availablePorts[2]}`
       );
 
     if (!postgresPort)
       console.log(
-        `Postgres will listen for connections on http://localhost:${availablePorts[3]}`
+        `Postgres will listen for connections on http://${
+          siteUrl || 'localhost'
+        }:${availablePorts[3]}`
+      );
+
+    const SITE_URL = `http://${siteUrl || 'localhost'}:${
+      sitePortHttp || availablePorts[4]
+    }`;
+    console.log(`Your can access your web app at ${SITE_URL}`);
+
+    if (!studioPort)
+      console.log(
+        `You can access Supabase Studio at https://${siteUrl || 'localhost'}:${
+          availablePorts[0]
+        }`
       );
 
     const use: {
@@ -312,6 +396,7 @@ const quickstart = quickstartFactory<AllOptions>(
       studio: StudioOptions;
       kong: KongOptions;
       postgres: PostgresOptions;
+      gotrue: GoTrueOptions;
     } = {
       jwtSecret,
       postgresPassword,
@@ -324,6 +409,21 @@ const quickstart = quickstartFactory<AllOptions>(
       },
       postgres: {
         POSTGRES_PORT: postgresPort || availablePorts[3],
+      },
+      gotrue: {
+        SITE_URL,
+        DISABLE_SIGNUP: preset === 0 /* 'true' if dev, 'false' if prod */,
+        // todo: ADDITIONAL_REDIRECT_URLS
+        JWT_EXPIRY: 3600,
+        ENABLE_EMAIL_SIGNUP: false,
+        ENABLE_EMAIL_AUTOCONFIRM: false,
+        SMTP_ADMIN_EMAIL: 'hello@example.com',
+        SMTP_HOST: 'smtp://my.mail.server.com',
+        SMTP_PORT: 587,
+        SMTP_USER: 'admin',
+        SMTP_PASS: 'password',
+        ENABLE_PHONE_SIGNUP: false,
+        ENABLE_PHONE_AUTOCONFIRM: false,
       },
     };
 
@@ -439,10 +539,7 @@ interface PostgRestOptions {}
  *
  * @see https://github.com/supabase/supabase/blob/40f37f3638ad245752eeff07d695d87e21de620a/docker/docker-compose.yml#L12
  */
-interface StorageOptions {
-  ANON_KEY: string;
-  SERVICE_ROLE_KEY: string;
-}
+interface StorageOptions {}
 
 /**
  * Options for the "supabase/postgres-meta:v0.29.0" container
@@ -460,13 +557,41 @@ interface PostgresMetaOptions {}
  *
  * This container authenticates users
  *
- * @see https://github.com/supabase/supabase/blob/40f37f3638ad245752eeff07d695d87e21de620a/docker/docker-compose.yml#L40
+ * @typeParam SITE_URL - the URL of your web app. (e.g. 'https://my-supa-app.com'). This field is required.
+ *
+ * @typeParam DISABLE_SIGNUP - don't let anyone create an account on your web app. Defaults to 'true' in development mode and 'false' in production mode. If you change it to 'true', then the only way to create an account on your web app is to invite someone from the supabase studio URL. Note that this doesn't stop people from signing _in_ to your web app. It just stops them from creating new accounts.
+ *
+ * @typeParam ADDITIONAL_REDIRECT_URLS - a list of one or more URIs that oAuth providers, such as Google, Github, and Facebook can send users to _after_ they log in. If you let people sign into your web app with Google, Github, Facebook, or any other oAuth provider, then your web app will send them to the oAuth provider's login page. Once they've logged in, the oAuth provider will send them to one of these URIs.
+ *
+ * @typeParam JWT_EXPIRY - the number of seconds before a user's JSON Web Token (JWT) expires. Once a user's JWT expires, they have to re-authenticate with your app. Defaults to 3600 seconds, or 1 hour. If you want to annoy your users, set this to something really small, like 600, which is 10 minutes.
+ *
+ * @typeParam ENABLE_EMAIL_SIGNUP - whether users can use their email to authenticate with your web app. Note that you have to build the UI for users to sign up with email. This setting only tells supabase to associate emails with user accounts.
+ *
+ * @typeParam ENABLE_EMAIL_AUTOCONFIRM - whether supabase should an account confirmation email to a user who signed up with email. Defaults to 'false'.
+ *
+ * @typeParam SMTP_ADMIN_EMAIL - the address from which all authentication-related emails are sent. (e.g. 'hello@my-supa-app.com'.) This is required.
+ *
+ * @typeParam SMTP_HOST - the mail server from which to send emails. (e.g. smtp.mandrillapp.com). Note that supabase doesn't have its own SMTP server. You have to provide it.
+ *
+ * @typeParam SMTP_PORT - the port on which the SMTP_HOST listens.
+ *
+ * @typeParam SMTP_USER - the username you use to authenticate to the SMTP_HOST
+ *
+ * @typeParam SMTP_PASS - the password you use to authenticate tothe SMTP_HOST
+ *
+ * @see https://github.com/supabase/supabase/blob/40f37f3638ad245752eeff07d695d87e21de620a/doc2ker/docker-compose.yml#L40
+ *
+ * @see https://supabase.com/docs/gotrue/server/about
+ *
+ * @see https://hub.docker.com/layers/supabase/gotrue/v2.5.8/images/sha256-ebae312adc009f0c35eaa03de51af9290afc73fab4da1a31f06a4b404858dc4b?context=explore
  */
 interface GoTrueOptions {
   SITE_URL: string;
-  ADDITIONAL_REDIRECT_URLS: string;
-  DISABLE_SIGNUP: string;
-  JWT_EXPIRY: string;
+  OPERATOR_TOKEN?: string /* only used if you are using netlify to host your prod frontend. see: https://supabase.com/docs/gotrue/server/about#top-level */;
+  DISABLE_SIGNUP: boolean;
+  ADDITIONAL_REDIRECT_URLS?: string /* only used if you want to allow logins with google, facebook or other SSO providers. see: https://supabase.com/docs/learn/auth-deep-dive/auth-google-oauth */;
+  JWT_EXPIRY: number;
+  /* for all of the following options, see https://supabase.com/docs/gotrue/server/about#e-mail */
   ENABLE_EMAIL_SIGNUP: boolean;
   ENABLE_EMAIL_AUTOCONFIRM: boolean;
   SMTP_ADMIN_EMAIL: string;
@@ -474,9 +599,32 @@ interface GoTrueOptions {
   SMTP_PORT: number;
   SMTP_USER: string;
   SMTP_PASS: string;
-  SMTP_SENDER_NAME: string;
+  // SMTP_SENDER_NAME: string; // todo: test if this is even necessary
+  // todo: implement the rest of the env variables listed at: https://supabase.com/docs/gotrue/server/about#e-mail
+  /* for all of the following options, see: */
   ENABLE_PHONE_SIGNUP: boolean;
   ENABLE_PHONE_AUTOCONFIRM: boolean;
+  // todo: ENABLE_X_SIGNUP to enable 'X' oAuth provider. see: https://supabase.com/docs/gotrue/server/about#external-authentication-providers
+  // EXTERNAL_BITBUCKET_ENABLED
+  // EXTERNAL_BITBUCKET_CLIENT_ID
+  // EXTERNAL_BITBUCKET_SECRET
+  // EXTERNAL_BITBUCKET_REDIRECT_URI
+  // EXTERNAL_BITBUCKET_URL
+  // EXTERNAL_GITHUB_ENABLED
+  // EXTERNAL_GITHUB_CLIENT_ID
+  // EXTERNAL_GITHUB_SECRET
+  // EXTERNAL_GITHUB_REDIRECT_URI
+  // EXTERNAL_GITHUB_URL
+  // EXTERNAL_GITLAB_ENABLED
+  // EXTERNAL_GITLAB_CLIENT_ID
+  // EXTERNAL_GITLAB_SECRET
+  // EXTERNAL_GITLAB_REDIRECT_URI
+  // EXTERNAL_GITLAB_URL
+  // EXTERNAL_GOOGLE_ENABLED
+  // EXTERNAL_GOOGLE_CLIENT_ID
+  // EXTERNAL_GOOGLE_SECRET
+  // EXTERNAL_GOOGLE_REDIRECT_URI
+  // EXTERNAL_GOOGLE_URL
 }
 
 /**
