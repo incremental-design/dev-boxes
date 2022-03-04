@@ -73,6 +73,7 @@ export async function prompts() {
     jwtExpiry,
     allowSignup,
     signupWith,
+    autoconfirmWith,
   } = await getAnswersFromCLI([
     {
       name: 'preset',
@@ -208,6 +209,19 @@ export async function prompts() {
       choices: [...signupMethods],
       hint: '- Space to select. Return to submit.',
     },
+    // {
+    //   name: 'autoconfirmWith',
+    //   type: (prev, values) =>
+    //     values.signupWith && values.signupWith.length > 0
+    //       ? 'multiselect'
+    //       : false,
+    //   message: 'Automatically create an account when users sign up with:',
+    //   choices: (prev, values) =>
+    //     signupMethods.filter((method) =>
+    //       values.signupWith.includes(method.value)
+    //     ),
+    //   hint: `- If you enable this, users won't receive an account confirmation message when they sign up for an account with a given method. Supabase will create an account, even if they can't access the email, phone number, or other authentication method they provided.`,
+    // },
   ]);
 
   if (
@@ -309,8 +323,45 @@ export async function prompts() {
     : [];
 
   const useSignupMethods = signupMethods
-    .filter((sm) => sw.includes(sm.value))
+    .filter((sm /* (s)ignup(m)ethod */) => sw.includes(sm.value))
     .map((sm) => sm.value);
+
+  const sv = signupMethods.map((sm) => sm.value);
+
+  const unrecognizedSignupMethods = sw.filter((s) => !sv.includes(s));
+  if (unrecognizedSignupMethods.length > 0) {
+    const validOptions = (() => {
+      const valids = sv.map((v) => `--signupWith ${v}`);
+      if (valids.length === 1) return `${valids[0]}`;
+      return `${valids.slice(0, -1).join(', ')} and ${
+        valids[valids.length - 1]
+      }`;
+    })();
+    const ua /* (u)nrecognized(a)rray */ = unrecognizedSignupMethods.map(
+      (m) => '--signupWith ' + m
+    );
+    const notValidOptions = (() => {
+      const notValids = unrecognizedSignupMethods.map(
+        (v) => `--signupWith ${v}`
+      );
+      if (notValids.length === 1) return `${notValids[0]}`;
+      return `${notValids.slice(0, -1).join(', ')} and ${
+        notValids[notValids.length - 1]
+      }`;
+    })();
+
+    console.error(
+      `Ignoring ${notValidOptions} ${
+        notValidOptions.length > 1
+          ? 'because they are not valid options'
+          : 'because it is not a valid option'
+      }. ${
+        validOptions.length > 1
+          ? 'Valid options are'
+          : 'The only valid option is'
+      } ${validOptions} .`
+    );
+  }
 
   let DISABLE_SIGNUP = true;
   if (
@@ -328,6 +379,10 @@ export async function prompts() {
       DISABLE_SIGNUP = false;
     }
   }
+
+  // const aw: Array<string> = Array.isArray(autoconfirmWith)
+  //   ? autoconfirmWith.map((signupMethod) => signupMethod.value)
+  //   : [];
 
   const use: {
     jwtSecret: string;
