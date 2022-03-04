@@ -207,7 +207,6 @@ const quickstart = quickstartFactory<AllOptions>(
       postgresPort,
       siteUrl,
       sitePortHttp,
-      sitePortHttps,
       jwtExpiry,
       allowSignup,
       signupWith,
@@ -313,17 +312,6 @@ const quickstart = quickstartFactory<AllOptions>(
           values.preset === 0 || !values.preset
             ? availablePorts[4] /* if preset 'dev' use the first available port starting from 3000 */
             : availablePorts[5] /* else, use the first availabe port starting from 80 */,
-        validate: validatePort,
-      },
-      {
-        name: 'sitePortHttps',
-        type: (prev, values) =>
-          values.preset === 0 ||
-          !values.preset /* if preset is 'dev' don't bother setting a site https port */
-            ? false
-            : 'number',
-        message: 'What port does your web app listen on for https traffic?',
-        initial: availablePorts[6],
         validate: validatePort,
       },
       {
