@@ -117,13 +117,23 @@ const quickstart = quickstartFactory<AllOptions>(
     if (options.goTrue) {
       environmentVariables.SITE_URL = options.goTrue.SITE_URL;
       environmentVariables.JWT_EXPIRY = options.goTrue.JWT_EXPIRY;
+      environmentVariables.DISABLE_SIGNUP = options.goTrue.DISABLE_SIGNUP;
+      environmentVariables.ENABLE_EMAIL_SIGNUP =
+        options.goTrue.ENABLE_EMAIL_SIGNUP;
+      environmentVariables.ENABLE_EMAIL_AUTOCONFIRM =
+        options.goTrue.ENABLE_EMAIL_AUTOCONFIRM;
+      environmentVariables.SMTP_ADMIN_EMAIL = options.goTrue.SMTP_ADMIN_EMAIL;
+      environmentVariables.SMTP_HOST = options.goTrue.SMTP_HOST;
+      environmentVariables.SMTP_PORT = options.goTrue.SMTP_PORT;
+      environmentVariables.SMTP_USER = options.goTrue.SMTP_USER;
+      environmentVariables.SMTP_PASS = options.goTrue.SMTP_PASS;
+      environmentVariables.ENABLE_PHONE_SIGNUP =
+        options.goTrue.ENABLE_PHONE_SIGNUP;
+      environmentVariables.ENABLE_PHONE_AUTOCONFIRM =
+        options.goTrue.ENABLE_PHONE_AUTOCONFIRM;
     }
 
     console.log(environmentVariables);
-
-    const c = yamlObject.services.storage.environment.SERVICE_KEY;
-
-    // console.log(JSON.stringify(yamlObject, null, 2));
 
     return {
       destroy: async () => {
@@ -190,6 +200,7 @@ const quickstart = quickstartFactory<AllOptions>(
       sitePortHttp,
       sitePortHttps,
       jwtExpiry,
+      allowSignup,
     } = await getAnswersFromCLI([
       {
         name: 'preset',
@@ -317,6 +328,15 @@ const quickstart = quickstartFactory<AllOptions>(
           value >
           0 /* we aren't giving 'infinite' as an option because that is a VERY bad idea. This is because if a bad actor steals a user's JWT, and the JWT never expires, the bad actor will have full access to supabase until you manually reset the JWT_SECRET */,
       },
+      {
+        name: 'allowSignup',
+        type: (prev, values) => {
+          return values.preset < 2 || !values.preset ? false : 'confirm';
+        },
+        message:
+          'Let users create accounts in your web app? If you enable this, then supabase will let users sign up for an account in your web app. Otherwise, you will have to manually create accounts for them. Disabling this does NOT prevent users from signing in to your web app, if they already have an account.',
+        initial: true,
+      },
     ]);
 
     if (
@@ -413,6 +433,10 @@ const quickstart = quickstartFactory<AllOptions>(
         }`
       );
 
+    let DISABLE_SIGNUP = true;
+    if ((allowSignup && allowSignup === 'true') || allowSignup === true)
+      DISABLE_SIGNUP = false;
+
     const use: {
       jwtSecret: string;
       postgresPassword: string;
@@ -435,17 +459,17 @@ const quickstart = quickstartFactory<AllOptions>(
       },
       goTrue: {
         SITE_URL,
-        DISABLE_SIGNUP: preset === 0 /* 'true' if dev, 'false' if prod */,
+        DISABLE_SIGNUP,
         // todo: ADDITIONAL_REDIRECT_URLS
         JWT_EXPIRY: jwtExpiry || JWT_EXPIRY,
-        ENABLE_EMAIL_SIGNUP: false,
+        ENABLE_EMAIL_SIGNUP: !DISABLE_SIGNUP,
         ENABLE_EMAIL_AUTOCONFIRM: false,
         SMTP_ADMIN_EMAIL: 'hello@example.com',
         SMTP_HOST: 'smtp://my.mail.server.com',
         SMTP_PORT: 587,
         SMTP_USER: 'admin',
         SMTP_PASS: 'password',
-        ENABLE_PHONE_SIGNUP: false,
+        ENABLE_PHONE_SIGNUP: !DISABLE_SIGNUP,
         ENABLE_PHONE_AUTOCONFIRM: false,
       },
     };
