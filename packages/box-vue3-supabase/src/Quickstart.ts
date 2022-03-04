@@ -188,6 +188,15 @@ const quickstart = quickstartFactory<AllOptions>(
       'box-vue3-supabase',
       'postgres'
     );
+
+    const signupMethods = [
+      { title: 'Email', value: 'email' },
+      { title: 'Phone', value: 'phone' },
+      { title: 'Bitbucket', value: 'bitbucket' },
+      { title: 'GitHub', value: 'github' },
+      { title: 'Gitlab', value: 'gitlab' },
+      { title: 'Google', value: 'google' },
+    ];
     const {
       preset,
       newPasswordBoxVue3SupabaseJwtSecret,
@@ -201,6 +210,7 @@ const quickstart = quickstartFactory<AllOptions>(
       sitePortHttps,
       jwtExpiry,
       allowSignup,
+      signupWith,
     } = await getAnswersFromCLI([
       {
         name: 'preset',
@@ -333,9 +343,19 @@ const quickstart = quickstartFactory<AllOptions>(
         type: (prev, values) => {
           return values.preset < 2 || !values.preset ? false : 'confirm';
         },
-        message:
-          'Let users create accounts in your web app? If you enable this, then supabase will let users sign up for an account in your web app. Otherwise, you will have to manually create accounts for them. Disabling this does NOT prevent users from signing in to your web app, if they already have an account.',
+        message: 'Let users create accounts in your web app?',
         initial: true,
+        hint: 'If you enable this, then supabase will let users sign up for an account in your web app. Otherwise, you will have to manually create accounts for them. Disabling this does NOT prevent users from signing in to your web app, if they already have an account.',
+      },
+      {
+        name: 'signupWith',
+        type: (prev) =>
+          prev
+            ? 'multiselect'
+            : false /* this prompt MUST directly follow 'allowSignup' */,
+        message: 'How should users be able to sign up for your web app?',
+        choices: [...signupMethods],
+        hint: '- Space to select. Return to submit.',
       },
     ]);
 
@@ -433,9 +453,30 @@ const quickstart = quickstartFactory<AllOptions>(
         }`
       );
 
+    const sw: Array<string> = Array.isArray(signupWith)
+      ? signupWith.map((s) => (s as string).toLowerCase())
+      : [];
+
+    const useSignupMethods = signupMethods
+      .filter((sm) => sw.includes(sm.value))
+      .map((sm) => sm.value);
+
     let DISABLE_SIGNUP = true;
-    if ((allowSignup && allowSignup === 'true') || allowSignup === true)
+    if (
+      allowSignup ===
+        undefined /* because it was never prompted, and no --allowSignup flag was passed */ &&
+      useSignupMethods.length > 0 /* because --signupWith <method> was passed */
+    ) {
       DISABLE_SIGNUP = false;
+    } else {
+      if (
+        allowSignup ===
+          'true' /* because --allowSignup true was passed as flag */ ||
+        allowSignup === true /* because allowSignup was prompted */
+      ) {
+        DISABLE_SIGNUP = false;
+      }
+    }
 
     const use: {
       jwtSecret: string;
@@ -462,14 +503,16 @@ const quickstart = quickstartFactory<AllOptions>(
         DISABLE_SIGNUP,
         // todo: ADDITIONAL_REDIRECT_URLS
         JWT_EXPIRY: jwtExpiry || JWT_EXPIRY,
-        ENABLE_EMAIL_SIGNUP: !DISABLE_SIGNUP,
+        ENABLE_EMAIL_SIGNUP:
+          !DISABLE_SIGNUP && useSignupMethods.includes('email'),
         ENABLE_EMAIL_AUTOCONFIRM: false,
         SMTP_ADMIN_EMAIL: 'hello@example.com',
         SMTP_HOST: 'smtp://my.mail.server.com',
         SMTP_PORT: 587,
         SMTP_USER: 'admin',
         SMTP_PASS: 'password',
-        ENABLE_PHONE_SIGNUP: !DISABLE_SIGNUP,
+        ENABLE_PHONE_SIGNUP:
+          !DISABLE_SIGNUP && useSignupMethods.includes('phone'),
         ENABLE_PHONE_AUTOCONFIRM: false,
       },
     };
