@@ -50,3 +50,11 @@ export async function getAnswersFromCLI(
   const promptAnswers = await prompts(questionsToAsk);
   return { ...flags, ...promptAnswers };
 }
+
+// todo: print help text for each flag, using the information provided by the prompts object
+
+// todo: validate each flag, using the information provided by the prompts object. i.e. if you pass a flag, skip the prompt, but validate using the prompt object validator. if the validation fails, bail.
+
+// todo: any time an unrecognized flag is passed, bail and print help text for each flag.
+
+// todo: any time --help or -h is passed, bail and print help text for each flag

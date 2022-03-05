@@ -45,6 +45,34 @@ export async function prompts() {
     return `Port ${port} on localhost is in use. Choose a different port`;
   };
 
+  const validateUrl = (url: string) => {
+    /* valid domains are 'localhost', any IP address, or a domain with a generic top-level domain (gTLD) */
+    if (url === 'localhost') return true;
+    if (
+      (() => {
+        const octets = url.split('.').map((octet) => {
+          const o = parseInt(octet);
+          return (
+            o >= 0 &&
+            o <=
+              255 /* yes, I know that we aren't checking to make sure that an IP address isn't a broadcast address. Maybe later. I don't feel like solving the CIDRs rn. */
+          );
+        });
+        return octets.length === 4 && octets.every((octet) => octet);
+      })()
+    )
+      return true;
+    if (
+      !url.match(
+        /.+?\.[a-zA-Z]+?$/
+      ) /* e.g. abc.com, abc.net, abc.io, ... see: https://stackoverflow.com/questions/9071279/number-in-the-top-level-domain */
+    )
+      return 'Site url must be an IP address or be a domain name that ends with a generic top-level-domain (gTLD) (e.g. .com, .net, .org)';
+    if (url.match(/^[a-z]+?\:\/\/.+?/))
+      return 'Do not include the protocol (e.g http://, ftp://, smtp://, webdav://) in your domain name or ip address.';
+    return true;
+  };
+
   const jwtPrompt = await makePasswordPrompt('box-vue3-supabase', 'JWT_SECRET');
 
   const postgresPasswordPrompt = await makePasswordPrompt(
@@ -74,6 +102,11 @@ export async function prompts() {
     allowSignup,
     signupWith,
     autoconfirmWith,
+    smtpAdminEmail,
+    smtpHost,
+    smtpPort,
+    smtpUser,
+    smtpPass,
   } = await getAnswersFromCLI([
     {
       name: 'preset',
@@ -141,31 +174,7 @@ export async function prompts() {
           : 'text',
       message: 'What is the domain name of your web app?',
       initial: 'my-supa-app.com',
-      validate: (url: string) => {
-        /* valid domains are 'localhost', any IP address, or a domain with a generic top-level domain (gTLD) */
-        if (url === 'localhost') return true;
-        if (
-          (() => {
-            const octets = url.split('.').map((octet) => {
-              const o = parseInt(octet);
-              return (
-                o >= 0 &&
-                o <=
-                  255 /* yes, I know that we aren't checking to make sure that an IP address isn't a broadcast address. Maybe later. I don't feel like solving the CIDRs rn. */
-              );
-            });
-            return octets.length === 4 && octets.every((octet) => octet);
-          })()
-        )
-          return true;
-        if (
-          !url.match(
-            /.+?\.[a-zA-Z]+?$/
-          ) /* e.g. abc.com, abc.net, abc.io, ... see: https://stackoverflow.com/questions/9071279/number-in-the-top-level-domain */
-        )
-          return 'Site url must be an IP address or be a domain name that ends with a generic top-level-domain (gTLD) (e.g. .com, .net, .org)';
-        return true;
-      },
+      validate: validateUrl,
     },
     {
       name: 'sitePortHttp',
@@ -221,6 +230,52 @@ export async function prompts() {
           values.signupWith.includes(method.value)
         ),
       hint: `- If you enable this, users won't receive an account confirmation message when they sign up for an account with a given method. Supabase will create an account, even if they can't access the email, phone number, or other authentication method they provided.`,
+    },
+    {
+      name: 'smtpAdminEmail',
+      type: 'text',
+      message:
+        'From which email address should your web app send account invites, account confirmations, and password recovery emails?',
+      initial: 'hello@my-supa-app.com',
+      validate: (value: string) => {
+        const segments = value.split('@');
+        if (segments.length !== 2) return 'You must enter an email address';
+        if (!segments[1].match(/[^.\s]+?\.[a-zA-Z]+?$/))
+          return 'Email address must end with a domain name (e.g. gmail.com, abc.xyz, example.net)';
+        if (segments[0].length < 1)
+          return 'Email address must contain a username (e.g. admin@abc.xyz, a@bc.com, hello@ymail.com';
+        return true;
+      },
+    },
+    {
+      name: 'smtpHost',
+      type: 'text',
+      message: 'What is the domain name or IP address of your SMTP server?',
+      validate: validateUrl,
+    },
+    {
+      name: 'smtpPort',
+      type: 'number',
+      message: 'What port does your SMTP server listen on?',
+      validate: validatePort,
+    },
+    {
+      name: 'smtpUser',
+      type: 'text',
+      message:
+        'what username should supabase use to authenticate to your SMTP server?',
+      initial:
+        (await retrieveFromKeychain('box-vue3-supabase', 'SMTP_USER')) ||
+        'admin',
+    },
+    {
+      name: 'smtpPass',
+      type: 'text',
+      message:
+        'what password should supabase use to authenticate to your SMTP server?',
+      initial:
+        (await retrieveFromKeychain('box-vue3-supabase', 'SMTP_PASS')) ||
+        'correct-battery-horse-staple',
     },
   ]);
 
@@ -434,6 +489,14 @@ export async function prompts() {
     }
   }
 
+  const SMTP_ADMIN_EMAIL = smtpAdminEmail;
+  const SMTP_HOST = `smtp://${smtpHost}`;
+  const SMTP_USER = smtpUser;
+  addToKeychain('box-vue3-supabase', 'SMTP_USER', SMTP_USER);
+
+  const SMTP_PASS = smtpPass;
+  addToKeychain('box-vue3-supabase', 'SMTP_PASS', SMTP_PASS);
+
   const use: {
     jwtSecret: string;
     postgresPassword: string;
@@ -464,11 +527,11 @@ export async function prompts() {
       ENABLE_EMAIL_AUTOCONFIRM:
         !DISABLE_SIGNUP &&
         autoconfirmWithMethods.map((a) => a.value).includes('email'),
-      SMTP_ADMIN_EMAIL: 'hello@example.com',
-      SMTP_HOST: 'smtp://my.mail.server.com',
-      SMTP_PORT: 587,
-      SMTP_USER: 'admin',
-      SMTP_PASS: 'password',
+      SMTP_ADMIN_EMAIL,
+      SMTP_HOST,
+      SMTP_PORT: smtpPort,
+      SMTP_USER,
+      SMTP_PASS,
       ENABLE_PHONE_SIGNUP:
         !DISABLE_SIGNUP && useSignupMethods.includes('phone'),
       ENABLE_PHONE_AUTOCONFIRM:
