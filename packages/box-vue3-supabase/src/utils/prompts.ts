@@ -209,19 +209,19 @@ export async function prompts() {
       choices: [...signupMethods],
       hint: '- Space to select. Return to submit.',
     },
-    // {
-    //   name: 'autoconfirmWith',
-    //   type: (prev, values) =>
-    //     values.signupWith && values.signupWith.length > 0
-    //       ? 'multiselect'
-    //       : false,
-    //   message: 'Automatically create an account when users sign up with:',
-    //   choices: (prev, values) =>
-    //     signupMethods.filter((method) =>
-    //       values.signupWith.includes(method.value)
-    //     ),
-    //   hint: `- If you enable this, users won't receive an account confirmation message when they sign up for an account with a given method. Supabase will create an account, even if they can't access the email, phone number, or other authentication method they provided.`,
-    // },
+    {
+      name: 'autoconfirmWith',
+      type: (prev, values) =>
+        values.signupWith && values.signupWith.length > 0
+          ? 'multiselect'
+          : false,
+      message: 'Automatically create an account when users sign up with:',
+      choices: (prev, values) =>
+        signupMethods.filter((method) =>
+          values.signupWith.includes(method.value)
+        ),
+      hint: `- If you enable this, users won't receive an account confirmation message when they sign up for an account with a given method. Supabase will create an account, even if they can't access the email, phone number, or other authentication method they provided.`,
+    },
   ]);
 
   if (
@@ -318,15 +318,31 @@ export async function prompts() {
       }`
     );
 
+  const aw = (() => {
+    if (Array.isArray(autoconfirmWith)) return autoconfirmWith;
+    if (typeof autoconfirmWith === 'string') return [autoconfirmWith];
+    return [];
+  })();
+
+  const autoconfirmWithMethods = signupMethods.filter((sm) =>
+    aw.map((a) => (a as string).toLowerCase()).includes(sm.value)
+  );
+
   const sw: Array<string> = Array.isArray(signupWith)
     ? signupWith.map((s) => (s as string).toLowerCase())
     : [];
 
   const useSignupMethods = signupMethods
-    .filter((sm /* (s)ignup(m)ethod */) => sw.includes(sm.value))
+    .filter(
+      (sm /* (s)ignup(m)ethod */) =>
+        sw.includes(sm.value) ||
+        aw.includes(
+          sm.value
+        ) /* the idea is that if you pass --autoconfirmWith <method>, it automatically enables --signupWith<method>*/
+    )
     .map((sm) => sm.value);
 
-  const sv = signupMethods.map((sm) => sm.value);
+  const sv /* (s)ignupmethod(v)alues */ = signupMethods.map((sm) => sm.value);
 
   const unrecognizedSignupMethods = sw.filter((s) => !sv.includes(s));
   if (unrecognizedSignupMethods.length > 0) {
@@ -363,11 +379,49 @@ export async function prompts() {
     );
   }
 
+  const unrecognizedAutoconfirmMethods = Array.isArray(autoconfirmWith)
+    ? autoconfirmWith.filter((a: string) => !sv.includes(a.toLowerCase()))
+    : [];
+
+  if (unrecognizedAutoconfirmMethods.length > 0) {
+    const validOptions = (() => {
+      const valids = sv.map((v) => `--autoconfirmWith ${v}`);
+      if (valids.length === 1) return `${valids[0]}`;
+      return `${valids.slice(0, -1).join(', ')} and ${
+        valids[valids.length - 1]
+      }`;
+    })();
+    const notValidOptions = (() => {
+      const notValids = unrecognizedAutoconfirmMethods.map(
+        (v: string) => `--autoconfirmWith ${v}`
+      );
+      if (notValids.length === 1) return `${notValids[0]}`;
+      return `${notValids.slice(0, -1).join(', ')} and ${
+        notValids[notValids.length - 1]
+      }`;
+    })();
+
+    console.error(
+      `Ignoring ${notValidOptions} ${
+        unrecognizedAutoconfirmMethods.length > 1
+          ? 'because they are not valid options'
+          : 'because it is not a valid option'
+      }. ${
+        validOptions.length > 1
+          ? 'Valid options are'
+          : 'The only valid option is'
+      } ${validOptions} .`
+    );
+  }
+
   let DISABLE_SIGNUP = true;
   if (
-    allowSignup ===
+    (allowSignup ===
       undefined /* because it was never prompted, and no --allowSignup flag was passed */ &&
-    useSignupMethods.length > 0 /* because --signupWith <method> was passed */
+      useSignupMethods.length >
+        0) /* because --signupWith <method> was passed */ ||
+    autoconfirmWithMethods.length >
+      0 /* because --autoconfirmWith <method> was passed */
   ) {
     DISABLE_SIGNUP = false;
   } else {
@@ -379,10 +433,6 @@ export async function prompts() {
       DISABLE_SIGNUP = false;
     }
   }
-
-  // const aw: Array<string> = Array.isArray(autoconfirmWith)
-  //   ? autoconfirmWith.map((signupMethod) => signupMethod.value)
-  //   : [];
 
   const use: {
     jwtSecret: string;
@@ -411,7 +461,9 @@ export async function prompts() {
       JWT_EXPIRY: jwtExpiry || JWT_EXPIRY,
       ENABLE_EMAIL_SIGNUP:
         !DISABLE_SIGNUP && useSignupMethods.includes('email'),
-      ENABLE_EMAIL_AUTOCONFIRM: false,
+      ENABLE_EMAIL_AUTOCONFIRM:
+        !DISABLE_SIGNUP &&
+        autoconfirmWithMethods.map((a) => a.value).includes('email'),
       SMTP_ADMIN_EMAIL: 'hello@example.com',
       SMTP_HOST: 'smtp://my.mail.server.com',
       SMTP_PORT: 587,
@@ -419,7 +471,9 @@ export async function prompts() {
       SMTP_PASS: 'password',
       ENABLE_PHONE_SIGNUP:
         !DISABLE_SIGNUP && useSignupMethods.includes('phone'),
-      ENABLE_PHONE_AUTOCONFIRM: false,
+      ENABLE_PHONE_AUTOCONFIRM:
+        !DISABLE_SIGNUP &&
+        autoconfirmWithMethods.map((a) => a.value).includes('phone'),
     },
   };
 
