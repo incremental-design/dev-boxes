@@ -6,7 +6,7 @@
   "repository": "git@github.com:designbyajay/provision-raspberry-pi-on-macos.git",
   "author": "Ajay Ganapathy <ajay@incremental.design>",
   "license": "MIT",
-  "private": true,
+  "private": false,
   "devDependencies": {
     "@babel/cli": "^7.17.0",
     "@babel/core": "^7.17.2",
