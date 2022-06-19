@@ -1,1 +1,0 @@
-yarn build 1>/dev/null
