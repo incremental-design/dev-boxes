@@ -18,3 +18,4 @@ export * from './isLabelValid';
 export * from './quickstartFactory';
 export * from './DockerComposeTypes';
 export * from './parseYaml';
+export * from './which'

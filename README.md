@@ -123,4 +123,4 @@ Inline documentation describes how the code within a given file works, and how y
 
 ### Deploy:
 
-<!-- Deployment is handled by Github actions. It automatically builds and uploads everything in [`packages`](./packages/) every time a new commit is made.  -->
+<!-- lerna publish --canary.  -->
