@@ -73,6 +73,9 @@ const package =
     "@incremental.design/box-base": version,
     "dockerode": "^3.3.1",
     "docker-file-parser": "^1.0.7",
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
 

@@ -44,5 +44,8 @@
     "picomatch": "^2.3.1",
     "portscanner": "^2.2.0",
     "prompts": "^2.4.2"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

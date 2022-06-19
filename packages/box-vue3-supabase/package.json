@@ -36,5 +36,8 @@
   "description": "Runs a vue3 frontend and supabase backend in docker containers.",
   "bin": {
     "box-vue3-supabase": "./runQuickstart.js"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
