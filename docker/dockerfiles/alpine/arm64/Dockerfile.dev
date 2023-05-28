@@ -1,0 +1,9 @@
+# installs VSCode server on alpine linux
+
+FROM --platform=arm64 alpine:latest
+
+# install vscode dev tools. see: https://code.visualstudio.com/docs/remote/tunnels#_using-the-vs-code-ui
+
+RUN wget "https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-arm64" -O - | tar -C /usr/local/bin -xzf -
+
+ENTRYPOINT [ "code", "tunnel", "--accept-server-license-terms" ]
