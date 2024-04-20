@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# check if the dirname command is available
+if ! command -v dirname >/dev/null 2>&1; then
+
+    echo "Error: 'dirname' command is not installed."
+    exit 1
+fi
+
+# get the directory of this script
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# if you use the nix flake to install project deps, this script will direct VScode to use the deno binary provided by the flake. Otherwise, it will use the deno that is globally installed
+BIN="$(nix eval --inputs-from $DIR/../. --raw nixpkgs#deno)/bin/deno" || BIN=$(which deno)
+$BIN "$@"

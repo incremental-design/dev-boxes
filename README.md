@@ -12,8 +12,6 @@ We don't strictly need to develop in an exact replica of a production environmen
 
 ## How does the code work?
 
-- use mutagen for file sync to dev container
-
 ## how can the reader use the code?
 
 where is the code deployed? (The answer should always be a precompiled binary or web shell (e.g. runkit). Don't make your reader set up an environment and build from source.
