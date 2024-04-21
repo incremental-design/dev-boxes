@@ -34,9 +34,10 @@
           deno
           python311
           poetry
-          bat
-          eza
           alejandra
+          lefthook
+          libwebp
+          ffmpeg
         ];
 
         # A hook run every time you enter the environment
@@ -44,6 +45,7 @@
           export POETRY_VIRTUALENVS_IN_PROJECT=true
           poetry install
           deno jupyter --install
+          poetry run pre-commit install
         '';
       };
     });
