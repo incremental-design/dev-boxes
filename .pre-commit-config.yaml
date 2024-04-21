@@ -1,0 +1,8 @@
+repos:
+-   repo: local
+    hooks:
+    -   id: compress-media
+        name: Compress Media
+        entry: .pre-commit/check_media_size.sh
+        language: script
+        pass_filenames: false
