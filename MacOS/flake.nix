@@ -39,6 +39,9 @@
 
       # use touch ID for sudo
       security.pam.enableSudoTouchIdAuth = true;
+
+      # use direnv to launch development environments. see: https://daiderd.com/nix-darwin/manual/index.html#opt-programs.direnv.enable
+      programs.direnv.enable = true;
     };
   in {
     # Build darwin flake using:
@@ -53,3 +56,5 @@
     darwinPackages = self.darwinConfigurations."arm".pkgs;
   };
 }
+# to rebuild this flake, `darwin-rebuild switch --flake .#arm` on an aarch64-darwin mac, `darwin-rebuild switch --flake .#x86` on an x86_64-darwin mac
+
