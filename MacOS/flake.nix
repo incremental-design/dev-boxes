@@ -92,6 +92,18 @@
               enableZshIntegration = true;
               enableBashIntegration = false;
             };
+            # see: https://github.com/ryan4yin/nix-darwin-kickstarter/blob/a458236698cd2e4e39d9e22b0874b54c9b18f98f/rich-demo/home/core.nix#L48
+            programs.eza = {
+              enable = true;
+              git = true;
+              icons = true;
+            };
+            programs.bat = {
+              enable = true;
+              config = {
+                theme = "base16-256";
+              };
+            };
           };
         }
       ];
