@@ -77,6 +77,12 @@
             };
             programs.zsh = {
               enable = true;
+              # see: https://medium.com/thelinux/how-to-configure-zsh-and-oh-my-zsh-in-nixos-6ddfbc3f0da3
+              syntaxHighlighting.enable = true;
+              autosuggestion = {
+                enable = true;
+                highlight = "fg=black,bg=#8aa0f9,bold,underline";
+              };
             };
             programs.bash = {
               enable = false;
