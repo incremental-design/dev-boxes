@@ -47,9 +47,6 @@ if [ -e /etc/bashrc ]; then
     sudo mv /etc/bashrc /etc/bashrc.before-nix-darwin
 fi
 
-
-ARM=$(sysctl -n machdep.cpu.brand_string | grep -q "Apple M1" && echo True || echo False)
-
 # todo: set the gh flake and lock
 FLAKE_ADDRESS=www.github.com
 
@@ -58,11 +55,9 @@ if [ -f flake.nix ]; then
 FLAKE_ADDRESS=''
 fi
 
-if [ $ARM = True ]; then
-    nix run --extra-experimental-features nix-command --extra-experimental-features flakes --extra-experimental-features configurable-impure-env nix-darwin -- switch --flake $FLAKE_ADDRESS.#arm
-else
-    nix run --extra-experimental-features nix-command --extra-experimental-features flakes --extra-experimental-features configurable-impure-env nix-darwin -- switch --flake $FLAKE_ADDRESS.#x86
-fi
+export ARCH=$(sysctl -n machdep.cpu.brand_string | grep -q "Apple M1" && echo "aarch64-darwin" || echo "x86_64-darwin")
+
+nix run --extra-experimental-features nix-command --extra-experimental-features flakes --extra-experimental-features configurable-impure-env nix-darwin -- switch --impure --flake $FLAKE_ADDRESS.#default
 ```
 
 5. Reboot your computer.
@@ -77,11 +72,9 @@ ARM=$(sysctl -n machdep.cpu.brand_string | grep -q "Apple M1" && echo True || ec
 set -e
 type darwin-rebuild
 
-if [ $ARM = True ]; then
-    darwin-rebuild switch --impure --flake $FLAKE_ADDRESS.#arm
-else
-    darwin-rebuild switch --impure --flake $FLAKE_ADDRESS.#x86
-fi
+export ARCH=$(sysctl -n machdep.cpu.brand_string | grep -q "Apple M1" && echo "aarch64-darwin" || echo "x86_64-darwin")
+
+darwin-rebuild switch --impure --flake $FLAKE_ADDRESS.#default
 ```
 
 ## Uninstall nix-darwin
