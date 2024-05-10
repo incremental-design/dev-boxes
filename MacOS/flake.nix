@@ -17,6 +17,7 @@
   }: let
     name = builtins.getEnv "USER";
     home = builtins.getEnv "HOME";
+    arch = builtins.getEnv "ARCH";
     configuration = {pkgs, ...}: {
       # List packages installed in system profile. To search by name, run:
       # $ nix-env -qaP
@@ -49,7 +50,7 @@
       system.stateVersion = 1;
 
       # The platform the configuration will be used on.
-      nixpkgs.hostPlatform = "aarch64-darwin";
+      nixpkgs.hostPlatform = arch;
 
       # use touch ID for sudo
       security.pam.enableSudoTouchIdAuth = true;
@@ -64,9 +65,7 @@
       };
     };
   in {
-    # Build darwin flake using:
-    # $ darwin-rebuild build --flake .#arm
-    darwinConfigurations."arm" = nix-darwin.lib.darwinSystem {
+    darwinConfigurations."default" = nix-darwin.lib.darwinSystem {
       modules = [
         configuration
         home-manager.darwinModules.home-manager
@@ -117,11 +116,9 @@
       ];
     };
 
-    # TODO: darwin-rebuild --flake .#x86
-
     # Expose the package set, including overlays, for convenience.
-    darwinPackages = self.darwinConfigurations."arm".pkgs;
+    darwinPackages = self.darwinConfigurations."default".pkgs;
   };
 }
-# to rebuild this flake, `darwin-rebuild switch --impure --flake .#arm` on an aarch64-darwin mac, `darwin-rebuild switch --impure --flake .#x86` on an x86_64-darwin mac
+# to rebuild this flake, `ARCH=$(sysctl -n machdep.cpu.brand_string | grep -q "Apple M1" && echo "aarch64-darwin" || echo "x86_64-darwin") darwin-rebuild switch --impure --flake .#default`
 
