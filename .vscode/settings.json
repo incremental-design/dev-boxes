@@ -1,0 +1,39 @@
+{
+    "deno.codeLens.test": true,
+    "deno.codeLens.referencesAllFunctions": true,
+    "deno.codeLens.references": true,
+    "deno.codeLens.implementations": true,
+    "deno.path": ".vscode/deno",
+    "deno.unstable": true,
+    "deno.lint": true,
+    "deno.cacheOnSave": true,
+    "deno.enable": true,
+    "typescript.tsserver.experimental.enableProjectDiagnostics": false,
+    "[typescript]": {
+        "editor.defaultFormatter": "denoland.vscode-deno",
+    },
+    "typescript.inlayHints.parameterTypes.enabled": true,
+    "javascript.inlayHints.functionLikeReturnTypes.enabled": true,
+    "typescript.inlayHints.functionLikeReturnTypes.enabled": true,
+    "typescript.inlayHints.variableTypes.enabled": true,
+    "typescript.inlayHints.parameterNames.enabled": "literals",
+    "typescript.inlayHints.propertyDeclarationTypes.enabled": true,
+    "python.terminal.activateEnvInCurrentTerminal": true,
+    "python.analysis.inlayHints.callArgumentNames": "all",
+    "python.analysis.inlayHints.functionReturnTypes": true,
+    "python.analysis.inlayHints.pytestParameters": true,
+    "python.analysis.inlayHints.variableTypes": true,
+    "python.globalModuleInstallation": true,
+    "python.REPL.enableREPLSmartSend": true,
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter"
+    },
+    "python.poetryPath": "${workspaceFolder}/.vscode/poetry",
+    "python.defaultInterpreterPath": "${workspaceFolder}/.vscode/python",
+    "nix.formatterPath": [
+        "nix",
+        "fmt",
+        "--",
+        "-"
+    ]
+}

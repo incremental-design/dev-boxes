@@ -1,0 +1,41 @@
+[tool.poetry]
+name = "dev-boxes"
+version = "0.1.0"
+description = "Building blocks for kubernetes clusters at incremental.design"
+authors = ["Ajay Ganapathy <ajay@incremental.design>"]
+license = "MIT"
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+jupyter = "^1.0.0"
+jupyterlab = "^4.1.6"
+
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.7.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.nox
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
