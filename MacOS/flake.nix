@@ -30,6 +30,7 @@
         pkgs.vhs
         pkgs.fx
         pkgs.dive
+        pkgs.granted
       ];
 
       # Auto upgrade nix package and the daemon service.
@@ -82,15 +83,25 @@
               # copy starship.toml into ~/.config/starship.toml
               source = ./starship.toml;
             };
+
+            # https://nix-community.github.io/home-manager/options.xhtml#opt-programs.zsh.enable
             programs.zsh = {
               enable = true;
-              # see: https://medium.com/thelinux/how-to-configure-zsh-and-oh-my-zsh-in-nixos-6ddfbc3f0da3
               syntaxHighlighting.enable = true;
               autosuggestion = {
                 enable = true;
                 highlight = "fg=black,bg=#8aa0f9,bold,underline";
               };
+              shellAliases = {
+                # the assume docs say to set this, but it doesn't work. sourcing assume causes the terminal to exit as soon as assume runs
+                # see: https://docs.commonfate.io/granted/troubleshooting#manually-configuring-your-shell-profile
+                # assume = "set -x && source assume";
+              };
+              initExtra = ''
+                export GRANTED_ALIAS_CONFIGURED="true"
+              '';
             };
+
             programs.bash = {
               enable = false;
             };
@@ -121,4 +132,6 @@
   };
 }
 # to rebuild this flake, `ARCH=$(sysctl -n machdep.cpu.brand_string | grep -q "Apple M1" && echo "aarch64-darwin" || echo "x86_64-darwin") darwin-rebuild switch --impure --flake .#default`
+# to clean up old generations `sudo nix-collect-garbage -d`
+# to list generations `darwin-rebuild --list-generations`
 
