@@ -33,6 +33,9 @@
         pkgs.granted
       ];
 
+      # https://nix-community.github.io/home-manager/options.xhtml#opt-programs.zsh.enableCompletion
+      environment.pathsToLink = ["/share/zsh"];
+
       # Auto upgrade nix package and the daemon service.
       services.nix-daemon.enable = true;
 
@@ -73,7 +76,7 @@
         {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
-          home-manager.users.${name} = {
+          home-manager.users.${name} = {pkgs, ...}: {
             # pin home manager to version 23.11
             home.stateVersion = "23.11";
             # let home manager update itself for this user
@@ -87,6 +90,7 @@
             # https://nix-community.github.io/home-manager/options.xhtml#opt-programs.zsh.enable
             programs.zsh = {
               enable = true;
+              enableCompletion = true;
               syntaxHighlighting.enable = true;
               autosuggestion = {
                 enable = true;
@@ -95,11 +99,49 @@
               shellAliases = {
                 # the assume docs say to set this, but it doesn't work. sourcing assume causes the terminal to exit as soon as assume runs
                 # see: https://docs.commonfate.io/granted/troubleshooting#manually-configuring-your-shell-profile
-                # assume = "set -x && source assume";
+                # see: https://github.com/NixOS/nixpkgs/issues/258867#issuecomment-1774939659 for fix
+                assume = "source ${pkgs.granted}/bin/.assume-wrapped";
               };
               initExtra = ''
                 export GRANTED_ALIAS_CONFIGURED="true"
+
+                # match case insensitive
+                zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+
+                # see: https://github.com/Aloxaf/fzf-tab/tree/master?tab=readme-ov-file#configure
+                # disable sort when completing `git checkout`
+                zstyle ':completion:*:git-checkout:*' sort false
+                # set descriptions format to enable group support
+                # NOTE: don't use escape sequences here, fzf-tab will ignore them
+                zstyle ':completion:*:descriptions' format '[%d]'
+                # set list-colors to enable filename colorizing
+                zstyle ':completion:*' list-colors ''${(s.:.)LS_COLORS}
+                # force zsh not to show completion menu, which allows fzf-tab to capture the unambiguous prefix
+                zstyle ':completion:*' menu no
+                # preview directory's content with eza when completing cd
+                zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 --color=always $realpath'
+                # switch group using `<` and `>`
+                zstyle ':fzf-tab:*' switch-group '<' '>'
               '';
+              history = {
+                ignoreAllDups = true;
+                ignoreSpace = true; # put a space before a command to keep it from being entered into history
+                share = true;
+              };
+              historySubstringSearch = {
+                enable = true;
+              };
+              plugins = [
+                {
+                  name = "fzf-tab";
+                  src = pkgs.fetchFromGitHub {
+                    owner = "Aloxaf";
+                    repo = "fzf-tab";
+                    rev = "v1.1.2";
+                    sha256 = "Qv8zAiMtrr67CbLRrFjGaPzFZcOiMVEFLg1Z+N6VMhg=";
+                  };
+                }
+              ];
             };
 
             programs.bash = {
@@ -121,6 +163,14 @@
               config = {
                 theme = "base16-256";
               };
+            };
+            programs.fzf = {
+              enable = true;
+              enableZshIntegration = true;
+            };
+            programs.zoxide = {
+              enable = true;
+              enableZshIntegration = true;
             };
           };
         }
