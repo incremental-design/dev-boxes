@@ -1,0 +1,282 @@
+format = """
+$os\
+[\uE0B0](fg:bar_one bg:bar_two)\
+$custom$directory\
+[\uE0B0](fg:bar_two bg:bar_three)\
+$git_branch\
+$git_status\
+[\uE0B0](fg:bar_three)\
+$c\
+$dart\
+$elixir\
+$elm\
+$golang\
+$haskell\
+$java\
+$julia\
+$lua\
+$nodejs\
+$nim\
+$php\
+$python\
+$rlang\
+$ruby\
+$rust\
+$scala\
+\u0020\
+"""
+
+right_format = """
+[\uE0B2](fg:bar_three)\
+$time\
+"""
+
+palette = 'theme'
+
+# Defines the colour palette for the theme
+[palettes.theme]
+bar_one = '#86ffff'
+bar_two = '#32e6e6'
+bar_three = '#29a0b2'
+bar_four = '#224e63'
+bar_five = '#8EAEE0'
+text_one = '#224e63'
+text_two = '#224e63'
+text_three = '#A3AED2'
+
+[os]
+style = 'bg:bar_one fg:text_one'
+format = '[ $symbol ]($style)'
+disabled = false
+
+[os.symbols]
+Alpine = ''
+Amazon = ''
+Android = ''
+Arch = ''
+CentOS = ''
+Debian = ''
+DragonFly = ''
+Emscripten = ''
+EndeavourOS = ''
+Fedora = ''
+FreeBSD = ''
+Garuda = '﯑'
+Gentoo = ''
+HardenedBSD = 'ﲊ'
+Illumos = ''
+Linux = "\uE712"
+Macos = "\uE711"
+Manjaro = ''
+Mariner = ''
+MidnightBSD = ''
+Mint = ''
+NetBSD = ''
+NixOS = ''
+OpenBSD = ''
+openSUSE = ''
+OracleLinux = ''
+Pop = ''
+Raspbian = ''
+Redhat = "\uE7BB"
+RedHatEnterprise = "\uE7BB"
+Redox = ''
+Solus = 'ﴱ'
+SUSE = ''
+Ubuntu = ''
+Unknown = ''
+Windows = ''
+
+[directory]
+truncation_length = 0
+truncation_symbol = '.../'
+truncate_to_repo = false
+fish_style_pwd_dir_length = 1
+style = 'bold fg:text_two bg:bar_two'
+format = '[ $path ]($style)'
+
+[custom.home]
+when = ''' test '$HOME' = '$PWD' '''
+style = 'bold fg:text_two bg:bar_two'
+symbol = ' '
+
+[custom.folder]
+when = ''' test '$HOME' != '$PWD' '''
+style = 'bold fg:text_two bg:bar_two'
+symbol = ' '
+
+[directory.substitutions]
+'Documents' = ' '
+'Downloads' = ' '
+'Music' = ' '
+'Pictures' = ' '
+
+[git_branch]
+symbol = ' '
+style = 'fg:text_three bg:bar_three'
+format = '[ $symbol $branch ]($style)'
+
+[git_status]
+style = 'fg:text_three bg:bar_three'
+format = '[$all_status$ahead_behind ]($style)'
+
+[c]
+symbol = '  '
+style = 'fg:text_three'
+format = '([$symbol($version(-$name) )]($style))'
+
+[dart]
+symbol = '  '
+style = 'fg:text_three'
+format = '([$symbol($version )]($style))'
+
+[elixir]
+symbol = '  '
+style = 'fg:text_three'
+format = '([$symbol($version \(OTP $otp_version\) )]($style))'
+
+[elm]
+symbol = '  '
+style = 'fg:text_three'
+format = '([$symbol($version )]($style))'
+
+[golang]
+symbol = '  '
+style = 'fg:text_three'
+format = '([$symbol($version )]($style))'
+
+[haskell]
+symbol = '  '
+style = 'fg:text_three'
+format = '([$symbol($version )]($style))'
+
+[java]
+symbol = '  '
+style = 'fg:text_three'
+format = '([$symbol($version )]($style))'
+
+[julia]
+symbol = '  '
+style = 'fg:text_three'
+format = '([$symbol($version )]($style))'
+
+[lua]
+symbol = '  '
+style = 'fg:text_three'
+format = '([$symbol($version )]($style))'
+
+[nodejs]
+symbol = '  '
+style = 'fg:text_three'
+format = '([$symbol($version )]($style))'
+
+[nim]
+symbol = '  '
+style = 'fg:text_three'
+format = '([$symbol($version )]($style))'
+
+[php]
+symbol = '  '
+style = 'fg:text_three'
+format = '([$symbol($version )]($style))'
+
+[python]
+symbol = '  '
+style = 'fg:text_three'
+format = '([${symbol}${pyenv_prefix}(${version} )(\($virtualenv\) )]($style))'
+
+[rlang]
+symbol = ' ﳒ '
+style = 'fg:text_three'
+format = '([$symbol($version )]($style))'
+
+[ruby]
+symbol = '  '
+style = 'fg:text_three'
+format = '([$symbol($version )]($style))'
+
+[rust]
+symbol = '  '
+style = 'fg:text_three'
+format = '([$symbol($version )]($style))'
+
+[scala]
+symbol = '  '
+style = 'fg:text_three'
+format = '([$symbol($version )]($style))'
+
+[time]
+disabled = false
+time_format = '%R'                   # Hour:Minute Format
+style = 'fg:text_three bg:bar_three'
+format = '[   $time ]($style)'
+
+[buf]
+format = '(with [$symbol$version ]($style))'
+
+[bun]
+format = '([$symbol($version )]($style))'
+
+
+[cmake]
+format = '([$symbol($version )]($style))'
+
+[cobol]
+format = '([$symbol($version )]($style))'
+
+[crystal]
+format = '([$symbol($version )]($style))'
+
+[daml]
+format = '([$symbol($version )]($style))'
+
+[deno]
+format = '([$symbol($version )]($style))'
+
+[dotnet]
+format = '([$symbol($version )(🎯 $tfm )]($style))'
+
+[erlang]
+format = '([$symbol($version )]($style))'
+
+[fennel]
+format = '([$symbol($version )]($style))'
+
+[helm]
+format = '([$symbol($version )]($style))'
+
+
+[kotlin]
+format = '([$symbol($version )]($style))'
+
+[ocaml]
+format = '([$symbol($version )(\($switch_indicator$switch_name\) )]($style))'
+
+[opa]
+format = '([$symbo($version ]($style))"'
+[package]
+format = '(is [$symbol$version]($style) )'
+
+[perl]
+format = '([$symbol($version )]($style))'
+
+[purescript]
+format = '([$symbol($version )]($style))'
+
+[raku]
+format = '([$symbol($version-$vm_version )]($style))'
+
+[red]
+format = '([$symbol($version )]($style))'
+
+[swift]
+format = '([$symbol($version )]($style))'
+
+[vagrant]
+format = '([$symbol($version )]($style))'
+
+[vlang]
+format = '([$symbol($version )]($style))'
+
+[zig]
+format = '([$symbol($version )]($style))'
