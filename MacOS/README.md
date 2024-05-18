@@ -59,9 +59,9 @@ FLAKE_ADDRESS=''
 fi
 
 if [ $ARM = True ]; then
-    nix run --extra-experimental-features nix-command --extra-experimental-features flakes nix-darwin -- switch --flake $FLAKE_ADDRESS.#arm
+    nix run --extra-experimental-features nix-command --extra-experimental-features flakes --extra-experimental-features configurable-impure-env nix-darwin -- switch --flake $FLAKE_ADDRESS.#arm
 else
-    nix run --extra-experimental-features nix-command --extra-experimental-features flakes nix-darwin -- switch --flake $FLAKE_ADDRESS.#x86
+    nix run --extra-experimental-features nix-command --extra-experimental-features flakes --extra-experimental-features configurable-impure-env nix-darwin -- switch --flake $FLAKE_ADDRESS.#x86
 fi
 ```
 
@@ -78,9 +78,9 @@ set -e
 type darwin-rebuild
 
 if [ $ARM = True ]; then
-    darwin-rebuild switch --flake $FLAKE_ADDRESS.#arm
+    darwin-rebuild switch --impure --flake $FLAKE_ADDRESS.#arm
 else
-    darwin-rebuild switch --flake $FLAKE_ADDRESS.#x86
+    darwin-rebuild switch --impure --flake $FLAKE_ADDRESS.#x86
 fi
 ```
 
