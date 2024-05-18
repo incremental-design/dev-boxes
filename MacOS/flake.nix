@@ -21,6 +21,14 @@
       # List packages installed in system profile. To search by name, run:
       # $ nix-env -qaP
       environment.systemPackages = [
+        pkgs.jq
+        pkgs.htop
+        pkgs.nmap
+        pkgs.yq-go
+        pkgs.glow
+        pkgs.vhs
+        pkgs.fx
+        pkgs.dive
       ];
 
       # Auto upgrade nix package and the daemon service.
