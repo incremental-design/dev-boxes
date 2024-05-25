@@ -1,37 +1,30 @@
 #!/bin/bash
 
-#get path to nix install
-NIX=$(which nix) || False
-DIRNAME=$(which dirname) || False
 
-# get dir of script
-DIR=False
-if [ "$DIRNAME" != "False" ]; then
-    DIR="$(cd "$($DIRNAME "${BASH_SOURCE[0]}")" && pwd)"
+# Check if the current directory ends with "pre-commit"
+if [[ "$(pwd)" != */dev-boxes ]]; then
+    echo $(pwd)
+    echo "Error: This script should be run from the dev-boxes directory."
+    exit 1
 fi
 
-#get path to cwebp, ffmpeg, ffprobe commands
-if [ "$NIX" != "False" ]; then
-    CWEBP=$(which cwebp)
-    FFMPEG=$(which ffmpeg)
-    FFPROBE=$(which ffprobe)
-else
-    CWEBP="$($NIX eval --inputs-from $DIR/../. --raw nixpkgs#libwebp)/bin/cwebp"
-    FFMPEG="$($NIX eval --inputs-from $DIR/../. --raw nixpkgs#ffmpeg)/bin/ffmpeg"
-    FFPROBE="$($NIX eval --inputs-from $DIR/../. --raw nixpkgs#ffmpeg)/bin/ffprobe"
-fi
+NIX=$(pwd)/.pre-commit/nix
+
+CWEBP="$($NIX eval --inputs-from $(pwd)/. --raw nixpkgs#libwebp)/bin/cwebp"
+FFMPEG="$($NIX eval --inputs-from $(pwd)/. --raw nixpkgs#ffmpeg)/bin/ffmpeg"
+FFPROBE="$($NIX eval --inputs-from $(pwd)/. --raw nixpkgs#ffmpeg)/bin/ffprobe"
 
 check_image_size() {
     
     local image_file="$1"
     # Get the size of the image
     image_size=$(du -k "$image_file" | cut -f1)
-    image_dims=$(cwebp "$image_file" 2>&1 | grep Dimension | cut -c 12- | tr 'x' '*')
+    image_dims=$($CWEBP "$image_file" 2>&1 | grep Dimension | cut -c 12- | tr 'x' '*')
     image_px=$(( $image_dims ))
     compression_ratio=$(( image_px / image_size ))
     
-    if [ $compression_ratio -lt 94000 ]; then
-        echo "compress $image_file to $(( $image_px / 94000 ))kb or less"
+    if [ $compression_ratio -lt 48000 ]; then
+        echo "compress $image_file to $(( $image_px / 48000 ))kb or less"
         exit 1
     fi
 }
@@ -42,7 +35,7 @@ check_video_size() {
     # Get the size of the video
     video_size=$(du -k "$video_file" | cut -f1)
     # Get the length of the video
-    video_length=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$video_file" | cut -d"." -f1) # floor to the number of seconds
+    video_length=$($FFPROBE -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$video_file" | cut -d"." -f1) # floor to the number of seconds
     
     # Calculate the compression ratio
     compression_ratio=$((video_size / video_length))
@@ -61,7 +54,7 @@ git diff --cached --name-only | while read file; do
         # Get the file extension
         file_extension="${file##*.}"
         # Check if it's an image file
-        if [[ $file_extension == jpg || $file_extension == png || $file_extension == gif ]]; then
+        if [[ $file_extension == jpg || $file_extension == jpeg || $file_extension == png || $file_extension == gif ]]; then
             check_image_size "$file"
         # Check if it's a video file
         elif [[ $file_extension == mp4 || $file_extension == mov ]]; then

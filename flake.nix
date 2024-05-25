@@ -46,6 +46,7 @@
           poetry install
           deno jupyter --install
           poetry run pre-commit install
+          ln -sf $(which nix) .pre-commit/nix
         '';
       };
     });
