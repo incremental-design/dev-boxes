@@ -9,16 +9,7 @@ see: [intall nix-darwin](https://github.com/LnL7/nix-darwin)
 type nix || curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
 ```
 
-2. Check nixpkgs channel.
-
-```bash {"id":"01HXD2VRM11RWRR1S6ETVSJY5C"}
-#!/usr/bin/env bash
-
-# there should be a nixpkgs channel installed
-nix-channel --list
-```
-
-3. Add nix-darwin channel.
+2. Add nix-darwin channel.
 
 ```bash {"id":"01HXD2VRM11RWRR1S6EW07HZSS"}
 #!/usr/bin/env bash
@@ -27,13 +18,15 @@ nix-channel --add https://github.com/LnL7/nix-darwin/archive/master.tar.gz
 nix-channel --update
 ```
 
-4. Bootstrap nix-darwin.
+3. Bootstrap nix-darwin.
 
    You might have to enter your password to complete this installation.
 
-   > [!INFO] a nix flake doesn't have to be on your local machine to be run. If you point nix to a flake anywhere on the internet, it will download and try to run it.
+> [!TIP]
+> a nix flake doesn't have to be on your local machine to be run. If you point nix to a flake anywhere on the internet, it will download and try to run it.
 
-   > [!WARNING] If this script finds a `flake.nix` in its current working directory, it will try to bootstrap nix darwin from that flake. MAKE SURE THAT the [`flake.nix`](flake.nix) is a valid nix-darwin flake.This script is for MacOS only. Do NOT run this on windows or linux!
+> [!WARNING]
+> If this script finds a `flake.nix` in its current working directory, it will try to bootstrap nix darwin from that flake. MAKE SURE THAT the [`flake.nix`](flake.nix) is a valid nix-darwin flake.This script is for MacOS only. Do NOT run this on windows or linux!
 
 ```bash {"id":"01HXD2VRM11RWRR1S6EXYD2JV0"}
 #!/usr/bin/env bash
@@ -47,21 +40,21 @@ if [ -e /etc/bashrc ]; then
     sudo mv /etc/bashrc /etc/bashrc.before-nix-darwin
 fi
 
-# todo: set the gh flake and lock
-FLAKE_ADDRESS=www.github.com
+# Set the flake address to the specific subfolder
+FLAKE_ADDRESS="github:incremental-design/dev-boxes?dir=MacOS"
 
 if [ -f flake.nix ]; then
-# use flake in CWD
-FLAKE_ADDRESS=''
+    # Use flake in the current working directory
+    FLAKE_ADDRESS='.'
 fi
 
-export ARCH=$(sysctl -n machdep.cpu.brand_string | grep -q "Apple M1" && echo "aarch64-darwin" || echo "x86_64-darwin")
+export ARCH=$(sysctl -n machdep.cpu.brand_string | grep -q "Apple M" && echo "aarch64-darwin" || echo "x86_64-darwin")
 
-nix run --extra-experimental-features nix-command --extra-experimental-features flakes --extra-experimental-features configurable-impure-env nix-darwin -- switch --impure --flake $FLAKE_ADDRESS.#default
+nix run --extra-experimental-features nix-command --extra-experimental-features flakes --extra-experimental-features configurable-impure-env nix-darwin -- switch --impure --flake "$FLAKE_ADDRESS#default"
 ```
 
-5. Reboot your computer.
-6. Rebuild the configuration, to make sure that nix-darwin has been properly installed.
+4. Reboot your computer.
+5. Rebuild the configuration, to make sure that nix-darwin has been properly installed.
 
 You might need to provide your password to complete this step.
 
