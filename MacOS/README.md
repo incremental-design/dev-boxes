@@ -31,9 +31,11 @@ nix-channel --update
 
    You might have to enter your password to complete this installation.
 
-   > [!INFO] a nix flake doesn't have to be on your local machine to be run. If you point nix to a flake anywhere on the internet, it will download and try to run it.
+> [!TIP]
+> a nix flake doesn't have to be on your local machine to be run. If you point nix to a flake anywhere on the internet, it will download and try to run it.
 
-   > [!WARNING] If this script finds a `flake.nix` in its current working directory, it will try to bootstrap nix darwin from that flake. MAKE SURE THAT the [`flake.nix`](flake.nix) is a valid nix-darwin flake.This script is for MacOS only. Do NOT run this on windows or linux!
+> [!WARNING]
+> If this script finds a `flake.nix` in its current working directory, it will try to bootstrap nix darwin from that flake. MAKE SURE THAT the [`flake.nix`](flake.nix) is a valid nix-darwin flake.This script is for MacOS only. Do NOT run this on windows or linux!
 
 ```bash {"id":"01HXD2VRM11RWRR1S6EXYD2JV0"}
 #!/usr/bin/env bash
@@ -47,8 +49,7 @@ if [ -e /etc/bashrc ]; then
     sudo mv /etc/bashrc /etc/bashrc.before-nix-darwin
 fi
 
-# todo: set the gh flake and lock
-FLAKE_ADDRESS=www.github.com
+FLAKE_ADDRESS=github:incremental-design/dev-boxes?dir=MacOS
 
 if [ -f flake.nix ]; then
 # use flake in CWD
