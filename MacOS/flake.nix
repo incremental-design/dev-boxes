@@ -103,8 +103,6 @@
                 assume = "source ${pkgs.granted}/bin/.assume-wrapped";
               };
               initExtra = ''
-                export GRANTED_ALIAS_CONFIGURED="true"
-
                 # match case insensitive
                 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
 
@@ -122,6 +120,9 @@
                 zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 --color=always $realpath'
                 # switch group using `<` and `>`
                 zstyle ':fzf-tab:*' switch-group '<' '>'
+              '';
+              envExtra = ''
+                export GRANTED_ALIAS_CONFIGURED="true"
               '';
               history = {
                 ignoreAllDups = true;

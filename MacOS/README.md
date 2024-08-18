@@ -36,7 +36,6 @@ if [ -e /etc/zshrc ]; then
 fi
 
 if [ -e /etc/bashrc ]; then
-    source /etc/bashrc
     sudo mv /etc/bashrc /etc/bashrc.before-nix-darwin
 fi
 
