@@ -64,6 +64,14 @@ ARM=$(sysctl -n machdep.cpu.brand_string | grep -q "Apple M1" && echo True || ec
 set -e
 type darwin-rebuild
 
+# Set the flake address to the specific subfolder
+FLAKE_ADDRESS="github:incremental-design/dev-boxes?dir=MacOS"
+
+if [ -f flake.nix ]; then
+    # Use flake in the current working directory
+    FLAKE_ADDRESS='.'
+fi
+
 export ARCH=$(sysctl -n machdep.cpu.brand_string | grep -q "Apple M1" && echo "aarch64-darwin" || echo "x86_64-darwin")
 
 darwin-rebuild switch --impure --flake $FLAKE_ADDRESS.#default
