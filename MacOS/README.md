@@ -10,9 +10,9 @@
 
 You might need to provide your password to complete this step.
 
-```bash
-curl --proto '=https' --tlsv1.2 -sSf -L https://raw.githubusercontent.com/incremental-design/dev-boxes/refs/heads/main/MacOS/install.sh | sh -s -- install
-```
+   ```bash
+   curl --proto '=https' --tlsv1.2 -sSf -L https://raw.githubusercontent.com/incremental-design/dev-boxes/refs/heads/main/MacOS/install.sh | sh -s -- rebuild
+   ```
 
 ## Uninstall nix-darwin
 
