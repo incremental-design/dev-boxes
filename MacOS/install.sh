@@ -2,7 +2,12 @@
 
 set -e
 
-FLAKE_ADDRESS="github:incremental-design/dev-boxes/main?dir=MacOS"
+# run locally with:
+# FLAKE_ADDRESS="." ./install.sh [install|rebuild|uninstall]
+#
+# run from the repo with:
+# ./install.sh [install|rebuild|uninstall]
+FLAKE_ADDRESS="${FLAKE_ADDRESS:-'github:incremental-design/dev-boxes/main?dir=MacOS'}"
 
 export ARCH=$(sysctl -n machdep.cpu.brand_string | grep -q "Apple M" && echo "aarch64-darwin" || echo "x86_64-darwin")
 

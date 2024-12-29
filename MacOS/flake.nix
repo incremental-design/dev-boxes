@@ -97,10 +97,25 @@
                 highlight = "fg=black,bg=#8aa0f9,bold,underline";
               };
               shellAliases = {
-                # the assume docs say to set this, but it doesn't work. sourcing assume causes the terminal to exit as soon as assume runs
-                # see: https://docs.commonfate.io/granted/troubleshooting#manually-configuring-your-shell-profile
-                # see: https://github.com/NixOS/nixpkgs/issues/258867#issuecomment-1774939659 for fix
-                assume = "source ${pkgs.granted}/bin/.assume-wrapped";
+                # We need to set GRANTED_ALIAS_CONFIGURED=true before sourcing .assume-wrapped
+                # because the sourced script NEEDS it to be set to true, but also insists on
+                # unsetting it when it runs. i.e.:
+                #
+                #  Terminal
+                #     |
+                #  assume command
+                #     |
+                #     |-> export GRANTED_ALIAS_CONFIGURED="true"
+                #     |    |
+                #     |    '-> assumego sees this is true
+                #     |
+                #     '-> source .assume-wrapped
+                #          |
+                #          '-> script can unset the var, but assumego
+                #              has already seen what it needed to see
+                assume = ''
+                  export GRANTED_ALIAS_CONFIGURED="true" && source ${pkgs.granted}/bin/.assume-wrapped
+                '';
               };
               initExtra = ''
                 # match case insensitive
