@@ -67,6 +67,10 @@
         name = name;
         home = home;
       };
+
+      imports = [
+        ./launchd
+      ];
     };
   in {
     darwinConfigurations."default" = nix-darwin.lib.darwinSystem {
