@@ -7,7 +7,7 @@ set -e
 #
 # run from the repo with:
 # ./install.sh [install|rebuild|uninstall]
-FLAKE_ADDRESS="${FLAKE_ADDRESS:-'github:incremental-design/dev-boxes/main?dir=MacOS'}"
+FLAKE_ADDRESS="${FLAKE_ADDRESS:-github:incremental-design/dev-boxes/main?dir=MacOS}"
 
 export ARCH=$(sysctl -n machdep.cpu.brand_string | grep -q "Apple M" && echo "aarch64-darwin" || echo "x86_64-darwin")
 
@@ -47,7 +47,7 @@ if ! type darwin-rebuild &> /dev/null; then
 else
     type darwin-rebuild
 fi
-darwin-rebuild switch --impure --flake $FLAKE_ADDRESS#default
+darwin-rebuild switch --impure --flake "$FLAKE_ADDRESS#default"
 
 }
 
