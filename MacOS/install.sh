@@ -47,7 +47,7 @@ if ! type darwin-rebuild &> /dev/null; then
 else
     type darwin-rebuild
 fi
-darwin-rebuild switch --impure --flake $FLAKE_ADDRESS#default
+darwin-rebuild switch --impure --flake "$FLAKE_ADDRESS#default"
 
 }
 
