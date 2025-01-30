@@ -33,6 +33,100 @@
         pkgs.granted
       ];
 
+      # Only allow public key authentication
+      #
+      # Think of this like a post office box
+      #
+      # Anyone can put a letter in the box, but
+      # only the owner of the box can take the
+      # letter out
+      #
+      # In this case, the owner of the box is the
+      # client - not the server.
+      #
+      # The client has a private key, and a public
+      # key.
+      #
+      # The private key is the PO Box
+      #
+      # The public key is the address of the PO Box
+      #
+      # When a client wants to connect to the
+      # server, the server verifies the identity of
+      # the client by sending a 'letter' to the
+      # client's PO Box
+      #
+      # The client then takes the letter out of the
+      # box and reads it back to the server.
+      #
+      # This tells the server that the client owns
+      # the PO Box, and that the server should use
+      # it for all subsequent authentication.
+      #
+      # Before any connection is attempted:
+      #
+      # Client
+
+      # ~/.ssh
+      #   |             (1)
+      #   |
+      #   |-- id_ed25519
+      #   '-- id_ed25519.pub -------,
+      #                             |
+      # Server                     (2)
+      # ~/.ssh                      |
+      #   |                         |
+      #   |-- authorized_keys   <---'
+      #
+      # 1. Client generates a keypair
+      #    with `ssh-keygen -t ed25519`
+      # 2. You copy the public key to
+      #    the server's authorized_keys
+      #
+      # On each connection attempt:
+      #    Client                Server
+      #      |                      |
+      # (1)  |--- SSH Request ----->|
+      #      |                      |
+      # (2)  |<-- Challenge --------|
+      #      |                      |
+      # (3)  |--- Response -------->|
+      #      |                      |
+      # (4)  |<-- Access Granted ---|
+      #
+      # 1. Client initiates SSH connection
+      # 2. Server sends a challenge
+      # 3. Client responds with a signed message
+      #    using private key
+      # 4. Server verifies response and grants
+      #    access
+      #
+      # NOTE: this doesn't start sshd ...
+      #       it just configures it.
+      #       To start sshd, enable remote
+      #       login in System Preferences ->
+      #       Security & Privacy -> Remote Login
+      #
+      # To log into the server, use:
+      #
+      #   ssh -i ~/.ssh/id_ed25519 user@server
+      #
+      # where ~/.ssh/id_ed25519 is the client's private key,
+      # user is the user on the server, and server is the
+      # hostname of the server.
+      environment.etc."ssh/sshd_config.d/102-no-password-auth.conf" = {
+        text = ''
+          PasswordAuthentication no
+          PubkeyAuthentication yes
+          AuthorizedKeysFile .ssh/authorized_keys
+          PermitRootLogin no
+          KbdInteractiveAuthentication no
+          ChallengeResponseAuthentication no
+          AuthorizedKeysCommand none
+          AuthorizedKeysCommandUser none
+        '';
+      };
+
       # https://nix-community.github.io/home-manager/options.xhtml#opt-programs.zsh.enableCompletion
       environment.pathsToLink = ["/share/zsh"];
 
