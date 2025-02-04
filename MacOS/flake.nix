@@ -33,6 +33,11 @@
         pkgs.granted
       ];
 
+      # Configure fonts
+      fonts.packages = with pkgs; [
+        nerd-fonts.jetbrains-mono
+      ];
+
       # https://nix-community.github.io/home-manager/options.xhtml#opt-programs.zsh.enableCompletion
       environment.pathsToLink = ["/share/zsh"];
 
@@ -81,6 +86,10 @@
             home.stateVersion = "23.11";
             # let home manager update itself for this user
             programs.home-manager.enable = true;
+
+            # Configure fonts
+            fonts.fontconfig.enable = true;
+
             # enable and configure starship
             home.file.".config/starship.toml" = {
               # copy starship.toml into ~/.config/starship.toml
