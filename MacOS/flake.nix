@@ -33,6 +33,10 @@
         pkgs.granted
       ];
 
+      # Configure fonts
+      fonts.packages = with pkgs; [
+        nerd-fonts.jetbrains-mono
+      ];
       # Only allow public key authentication
       #
       # Think of this like a post office box
@@ -175,6 +179,10 @@
             home.stateVersion = "23.11";
             # let home manager update itself for this user
             programs.home-manager.enable = true;
+
+            # Configure fonts
+            fonts.fontconfig.enable = true;
+
             # enable and configure starship
             home.file.".config/starship.toml" = {
               # copy starship.toml into ~/.config/starship.toml
