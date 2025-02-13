@@ -199,24 +199,9 @@
                 highlight = "fg=black,bg=#8aa0f9,bold,underline";
               };
               shellAliases = {
-                # We need to set GRANTED_ALIAS_CONFIGURED=true before sourcing .assume-wrapped
-                # because the sourced script NEEDS it to be set to true, but also insists on
-                # unsetting it when it runs. i.e.:
-                #
-                #  Terminal
-                #     |
-                #  assume command
-                #     |
-                #     |-> export GRANTED_ALIAS_CONFIGURED="true"
-                #     |    |
-                #     |    '-> assumego sees this is true
-                #     |
-                #     '-> source .assume-wrapped
-                #          |
-                #          '-> script can unset the var, but assumego
-                #              has already seen what it needed to see
+                # We need to SOURCE assume because otherwise we can't use the env vars it sets
                 assume = ''
-                  export GRANTED_ALIAS_CONFIGURED="true" && source ${pkgs.granted}/bin/.assume-wrapped
+                  source ${pkgs.granted}/bin/assume
                 '';
               };
               initExtra = ''

@@ -8,8 +8,7 @@
 3. Reboot your computer.
 4. Rebuild the configuration, to make sure that nix-darwin has been properly installed.
 
-You might need to provide your password to complete this step.
-
+   You might need to provide your password to complete this step.
    ```bash
    curl --proto '=https' --tlsv1.2 -sSf -L https://raw.githubusercontent.com/incremental-design/dev-boxes/refs/heads/main/MacOS/install.sh | sh -s -- rebuild
    ```
@@ -17,9 +16,8 @@ You might need to provide your password to complete this step.
 ## Uninstall nix-darwin
 
 1. Ensure that `nixpkgs` channel and `nix-darwin` channel are set. If not, set them.
-
-```bash
-curl --proto '=https' --tlsv1.2 -sSf -L https://raw.githubusercontent.com/incremental-design/dev-boxes/refs/heads/main/MacOS/install.sh | sh -s -- uninstall
-```
+   ```bash
+   curl --proto '=https' --tlsv1.2 -sSf -L https://raw.githubusercontent.com/incremental-design/dev-boxes/refs/heads/main/MacOS/install.sh | sh -s -- uninstall
+   ```
 
 2. Reboot your computer.
